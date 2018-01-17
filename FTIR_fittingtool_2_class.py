@@ -23,7 +23,6 @@ from sys import platform as _platform
 
 __version__ = '2.30'
 
-print("test")
 
 class FIT_FTIR:
     def __init__(self, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
@@ -1392,10 +1391,28 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Load existing heterojunction structures (.csv files.)"""
 
+        self.osdir = "/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure"
+
         filelist = []
-        for item in os.listdir("/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure"):
-            if item[-4:None] == ".CSV":
-                filelist.append(item[0:-4])
+        try:
+            for item in os.listdir(self.osdir):
+                if item[-4:None] == ".CSV":
+                    filelist.append(item[0:-4])
+        except FileNotFoundError:
+            findornot = messagebox.askquestion(" ", "Structure folder not found. Do you want to relocate the folder manually?", icon='warning')
+            if findornot == 'yes':
+                self.osdir = filedialog.askdirectory()
+                for item in os.listdir(self.osdir):
+                    if item[-4:None] == ".CSV":
+                        filelist.append(item[0:-4])
+                self.addlog('Folder directory changed to {}'.format(self.osdir))
+            else:
+                return
+
+        if filelist == []:
+            self.addlog("No structure is found. ")
+            self.osdir = "/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure2"
+            return
 
         openfromfilewindow = Toplevel()
         w2 = 250  # width for the window
@@ -1432,7 +1449,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.layernumber = 0
 
             self.Structurename = Structurenameget.get() + ".CSV"
-            filename = "/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure/" + self.Structurename
+            filename = self.osdir + "/" + self.Structurename
 
             layerlist = []
             xlist = []
