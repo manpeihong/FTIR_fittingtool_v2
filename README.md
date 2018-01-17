@@ -5,4 +5,4 @@ Used for students and alumni of Microphysics Laboratory at University of Illinoi
 
 For any questions, please contact pman3@uic.edu.
 
-© 1,2018 Peihong Man.
+© 1, 2018 Peihong Man.
