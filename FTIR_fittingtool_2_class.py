@@ -21,7 +21,7 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 
-__version__ = '2.30'
+__version__ = '2.31'
 
 
 class FIT_FTIR:
