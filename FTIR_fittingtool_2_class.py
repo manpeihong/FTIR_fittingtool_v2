@@ -23,6 +23,7 @@ from sys import platform as _platform
 
 __version__ = '2.30'
 
+print("test")
 
 class FIT_FTIR:
     def __init__(self, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
