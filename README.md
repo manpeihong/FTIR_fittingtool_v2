@@ -1,7 +1,7 @@
 # FTIR_fittingtool_v2
 The second generation of FTIR data fitting tool. 
 
-Used for students and alumni of microphysics lab University of Illinois at Chicago only. 
+Used for students and alumni of Microphysics Laboratory at University of Illinois at Chicago only. 
 
 For any questions, please contact pman3@uic.edu.
 
