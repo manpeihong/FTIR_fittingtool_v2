@@ -6,7 +6,6 @@ from tkinter import filedialog, messagebox
 from tkinter.ttk import Progressbar
 import csv
 import matplotlib
-
 matplotlib.use("TkAgg")
 # import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -14,7 +13,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import numpy as np
-
 from scipy.optimize import curve_fit
 import threading
 import queue
