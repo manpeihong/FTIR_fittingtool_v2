@@ -21,7 +21,7 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 
-__version__ = '2.31'
+__version__ = '2.40'
 
 
 class FIT_FTIR:
@@ -59,7 +59,10 @@ class FIT_FTIR:
 
         self.basek = 0
         self.ab = 0
+        self.reflections = []
         self.absorptions = []
+
+        self.load_n_file()
 
         if self.fittingtype == 1:
             self.fit_curve()
@@ -87,10 +90,15 @@ class FIT_FTIR:
         self.addlog('Fitting curve complete.')
 
     def show_fringes(self):
+        self.peakvalues = []
+        self.reflections = []
+        self.absorptions = []
         for wn in self.wns:
             self.lamda = 10000 / float(wn)
             self.E = 4.13566743 * 3 / 10 / self.lamda
-            self.peakvalues.append(float(self.cal_fringes_single(self.lamda)))
+            self.peakvalues.append(self.cal_fringes_single(self.lamda)[0])
+            self.reflections.append(self.cal_fringes_single(self.lamda)[1])
+            self.absorptions.append(self.cal_fringes_single(self.lamda)[2])
 
     def cal_fringes_single(self, lamda):
         self.n_list = []
@@ -102,16 +110,18 @@ class FIT_FTIR:
         self.matrixs_list = []
         self.matrixp_list = []
 
+        self.allresult = []
+
         self.eta0s = np.cos(self.angle)
         self.eta0p = 1 / np.cos(self.angle)
 
         for i in range(0, len(self.layertype_list)):
             if self.layertype_list[i] == "CdTe":
                 self.cal_initialpara(1)
-            else:
+            elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
                 self.cal_initialpara(self.entry_x_list[i])
-            n = self.cal_n(lamda)
-            k = 0
+            n = self.cal_n(lamda, self.layertype_list[i])
+            k = self.cal_k(lamda, self.layertype_list[i])
             self.n_list.append(n)
             self.k_list.append(k)
             etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
@@ -165,13 +175,30 @@ class FIT_FTIR:
 
         Zs = self.eta0s * Bs + Cs
         Zp = self.eta0p * Bp + Cp
+        Z2s = self.eta0s * Bs - Cs
+        Z2p = self.eta0p * Bp - Cp
+
+        Ztops = Bs * (Cs.conjugate()) - self.etasubs
+        Ztopp = Bp * (Cp.conjugate()) - self.etasubp
 
         Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
         Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
 
-        self.peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
+        Rs = Z2s / Zs * ((Z2s / Zs).conjugate())
+        Rp = Z2p / Zp * ((Z2p / Zp).conjugate())
 
-        return float(self.peakvalue)
+        As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
+        Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
+
+        transmission = (Ts + Tp) / 2 * 100 * self.scalefactor
+        reflection = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
+        absorption = (As + Ap) / 2 * 100 * 1
+
+        self.allresult.append(float(transmission))
+        self.allresult.append(float(reflection))
+        self.allresult.append(float(absorption))
+
+        return self.allresult
 
     def cal_initialpara(self, x):
         self.T = 300
@@ -184,12 +211,157 @@ class FIT_FTIR:
         self.sigma = 3.267 * np.power(10, 4) * (1 + x)
         self.alpha0 = np.exp(-18.88 + 3.61 * x)
 
-    def cal_n(self, lamda):
-        if lamda < 1.4 * self.C1:
-            lamda = 1.4 * self.C1
+    def load_n_file(self):
+        self.wl_n_ZnSe = []
+        self.n_ZnSe = []
+        self.wl_k_ZnSe = []
+        self.k_ZnSe = []
+        self.wl_n_BaF2 = []
+        self.n_BaF2 = []
+        self.wl_k_BaF2 = []
+        self.k_BaF2 = []
+        self.wl_n_Ge = []
+        self.n_Ge = []
+        self.wl_k_Ge = []
+        self.k_Ge = []
+        self.wl_n_ZnS = []
+        self.n_ZnS = []
+        self.wl_k_ZnS = []
+        self.k_ZnS = []
 
-        n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
-        return n
+        os.chdir('/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Refractive_Index')
+        with open('ZnSe_n.csv', 'r') as f1:
+            reader = csv.reader(f1, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_n_ZnSe.append(float(row[0]))
+                    self.n_ZnSe.append(float(row[1]))
+                except ValueError:
+                    pass
+        with open('ZnSe_k.csv', 'r') as f2:
+            reader = csv.reader(f2, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_k_ZnSe.append(float(row[0]))
+                    self.k_ZnSe.append(float(row[1]))
+                except ValueError:
+                    pass
+        with open('BaF2_n.csv', 'r') as f3:
+            reader = csv.reader(f3, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_n_BaF2.append(float(row[0]))
+                    self.n_BaF2.append(float(row[1]))
+                except ValueError:
+                    pass
+        with open('BaF2_k.csv', 'r') as f4:
+            reader = csv.reader(f4, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_k_BaF2.append(float(row[0]))
+                    self.k_BaF2.append(float(row[1]))
+                except ValueError:
+                    pass
+
+        with open('Ge_n_293K.csv', 'r') as f5:
+            reader = csv.reader(f5, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_n_Ge.append(float(row[0]))
+                    self.n_Ge.append(float(row[1]))
+                except ValueError:
+                    pass
+
+        with open('ZnS_n.csv', 'r') as f7:
+            reader = csv.reader(f7, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_n_ZnS.append(float(row[0]))
+                    self.n_ZnS.append(float(row[1]))
+                except ValueError:
+                    pass
+
+        with open('ZnS_k.csv', 'r') as f8:
+            reader = csv.reader(f8, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_k_ZnS.append(float(row[0]))
+                    self.k_ZnS.append(float(row[1]))
+                except ValueError:
+                    pass
+
+    def cal_n(self, lamda, material):
+        if material == "CdTe" or material == "MCT" or material == "SL":
+            if lamda < 1.4 * self.C1:
+                lamda = 1.4 * self.C1
+
+            n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
+            return n
+        elif material == "ZnSe":
+            for i in range(0, len(self.wl_n_ZnSe)):
+                if self.wl_n_ZnSe[i + 1] > lamda >= self.wl_n_ZnSe[i]:
+                    n = self.n_ZnSe[i]
+                    return n
+
+        elif material == "BaF2":
+            for i in range(0, len(self.wl_n_BaF2)):
+                if self.wl_n_BaF2[i + 1] > lamda >= self.wl_n_BaF2[i]:
+                    n = self.n_BaF2[i]
+                    return n
+
+        elif material == "Ge":
+            try:
+                for i in range(0, len(self.wl_n_Ge)):
+                    if self.wl_n_Ge[i + 1] > lamda >= self.wl_n_Ge[i]:
+                        n = self.n_Ge[i]
+                        return n
+            except IndexError:
+                return 4  # The Ge refractive index file does not have enough range.
+
+        elif material == "ZnS":
+            for i in range(0, len(self.wl_n_ZnS)):
+                if self.wl_n_ZnS[i + 1] > lamda >= self.wl_n_ZnS[i]:
+                    n = self.n_ZnS[i]
+                    return n
+
+        elif material == "Si":
+            n = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
+            return n
+        elif material == "Air":
+            n = 1
+            return n
+
+    def cal_k(self, lamda, material):
+        k = 0
+        if material == "CdTe" or material == "MCT" or material == "SL":
+            return 0
+
+        elif material == "ZnSe":
+            for i in range(0, len(self.wl_k_ZnSe)):
+                if self.wl_k_ZnSe[i + 1] > lamda >= self.wl_k_ZnSe[i]:
+                    k = self.k_ZnSe[i]
+                    return k
+
+        elif material == "BaF2":
+            for i in range(0, len(self.wl_k_BaF2)):
+                if self.wl_k_BaF2[i + 1] > lamda >= self.wl_k_BaF2[i]:
+                    k = self.k_BaF2[i]
+                    return k
+
+        elif material == "Ge":
+            return 0
+
+        elif material == "ZnS":
+            for i in range(0, len(self.wl_k_ZnS)):
+                if self.wl_k_ZnS[i + 1] > lamda >= self.wl_k_ZnS[i]:
+                    k = self.k_ZnS[i]
+                    return k
+
+        elif material == "Si":
+            return 0
+
+        elif material == "Air":
+            return 0
 
     def cal_R(self, x1, x2, lamda):
         if x1 != -1:
@@ -620,6 +792,12 @@ class FIT_FTIR:
     def returnpeakvalues(self):
         return self.peakvalues
 
+    def returnreflections(self):
+        return self.reflections
+
+    def returnabsorptions(self):
+        return self.absorptions
+
     def addlog(self, string):
         self.listbox.insert(END, string)
         self.listbox.yview(END)
@@ -844,6 +1022,8 @@ class FTIR_fittingtool_GUI(Frame):
         self.transcutlow = 0
         self.transmissions_fit = []
         self.peakvalues_fit = []
+        self.reflections_fit = []
+        self.absorptions_fit = []
         self.fitline = None
         self.MSE = 0
         self.MSE_new = 0
@@ -856,6 +1036,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.osdir = ''
 
+        self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Air"]
+
+        self.displayreflection, self.displayabsorption = 0, 0
+
         self.COLUMN0_WIDTH = 4
         self.COLUMN1_WIDTH = 3
         self.COLUMN2_WIDTH = 8
@@ -864,9 +1048,18 @@ class FTIR_fittingtool_GUI(Frame):
         self.frame0.pack(side=TOP, fill=X, expand=True)
         self.frame0.pack_propagate(0)
 
+        buttonsettings = Button(self.frame0, text="Settings",
+                            command=self.settings, highlightbackground='#262626', width=7)
+        buttonsettings.pack(side=LEFT)
+
         buttonopen = Button(self.frame0, text="Open(⌘+O)",
                             command=self.openfromfile, highlightbackground='#262626', width=9)
         buttonopen.pack(side=LEFT)
+
+        buttonsave= Button(self.frame0, text="Save result",
+                            command=self.savetofile, highlightbackground='#262626', width=9)
+        buttonsave.pack(side=LEFT)
+
         buttonclear = Button(self.frame0, text="Clear(⌘+C)",
                              command=self.clearalldata, highlightbackground='#262626', width=9)
         buttonclear.pack(side=LEFT)
@@ -1004,7 +1197,7 @@ class FTIR_fittingtool_GUI(Frame):
             else:
                 getattr(self, "layertypevar{}".format(self.layernumber)).set("MCT")
             getattr(self, "layertypevar{}".format(self.layernumber)).trace("w", change_sub)
-            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), "CdTe", "MCT", "SL")
+            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
             layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
             layertypeoption1.grid(row=11 + self.layernumber, column=0, sticky=W+E)
 
@@ -1286,6 +1479,72 @@ class FTIR_fittingtool_GUI(Frame):
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
 
+    def settings(self):
+
+        """Optinal settings for customized result."""
+
+        settingwindow = Toplevel()
+        w2 = 250  # width for the window
+        h2 = 100  # height for the window
+        ws = self.masterroot.winfo_screenwidth()  # width of the screen
+        hs = self.masterroot.winfo_screenheight()  # height of the screen
+        # calculate x and y coordinates for the Tk root window
+        x2 = (ws / 2) - (w2 / 2)
+        y2 = (hs / 3) - (h2 / 3)
+        # set the dimensions of the screen
+        # and where it is placed
+        settingwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
+        settingwindow.wm_title("Settings")
+        # openfromfilewindow.wm_overrideredirect(True)
+        settingwindow.configure(background='#2b2b2b', takefocus=True)
+        settingwindow.attributes('-topmost', 'true')
+        settingwindow.grab_set()
+
+        Label(settingwindow, text="-------------Show Fringes------------", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0,
+                                                                                             columnspan=2, sticky=W)
+
+        self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
+        checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp, bg='#2b2b2b', fg="#a9b7c6")
+        checkboxr.grid(row=1, column=0, columnspan=2, sticky=W)
+
+        if self.displayreflection == 1:
+            checkboxr.select()
+
+        checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp, bg='#2b2b2b', fg="#a9b7c6")
+        checkboxa.grid(row=2, column=0, columnspan=2, sticky=W)
+
+        if self.displayabsorption== 1:
+            checkboxa.select()
+
+        # Samplenamegetoption.grab_set()
+        # Structurenamegetoption.focus_set()
+
+        def buttonOkayfuncton():
+            self.displayreflection = self.displayreflection_temp.get()
+            self.displayabsorption = self.displayabsorption_temp.get()
+
+            settingwindow.grab_release()
+            self.masterroot.focus_set()
+            settingwindow.destroy()
+            return
+
+        def buttonCencelfuncton():
+            settingwindow.grab_release()
+            self.masterroot.focus_set()
+            settingwindow.destroy()
+            return
+
+        def buttonOkayfunction_event(event):
+            buttonOkayfuncton()
+
+        buttonOK = Button(settingwindow, text="OK",
+                          command=buttonOkayfuncton, highlightbackground='#2b2b2b', width=10)
+        buttonOK.grid(row=3, column=0, columnspan=1)
+        buttonOK = Button(settingwindow, text="Cancel",
+                          command=buttonCencelfuncton, highlightbackground='#2b2b2b', width=10)
+        buttonOK.grid(row=3, column=1, columnspan=1)
+        settingwindow.bind('<Return>', buttonOkayfunction_event)
+
     def openfromfile(self):
 
         """Open a FTIR transmission .csv file. """
@@ -1387,6 +1646,37 @@ class FTIR_fittingtool_GUI(Frame):
         elif len(self.wavenumbers) == 1946:
             self.addlog('Sample is probably characterized at UIC.')
 
+    def savetofile(self):
+
+        """Save calculated Transmission/Reflection/Absorption to file."""
+
+        if self.peakvalues_fit ==[]:
+            self.addlog("No data can be saved. ")
+            return
+
+        saveascsv = filedialog.asksaveasfilename(defaultextension='.csv')
+        if saveascsv is None:
+            return
+        if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
+            self.addlog('Only .csv file can be saved.')
+            return
+        f = open(saveascsv, "w")
+        if self.displayreflection == 1 or self.displayabsorption == 1:
+            f.write("wn,T,R,A\n")
+
+            for i in range(0, len(self.wavenumbers_cut)):
+                f.write("{0:.6e},{1:.6e},{2:.6e},{3:.6e}\n".format(self.wavenumbers_cut[i], self.peakvalues_fit[i],
+                                                                   self.reflections_fit[i], self.absorptions_fit[i]))
+        else:
+            f.write("wn,T\n")
+
+            for i in range(0, len(self.wavenumbers_cut)):
+                f.write("{0:.6e},{1:.6e}\n".format(self.wavenumbers_cut[i], self.peakvalues_fit[i]))
+
+        f.close()
+
+        self.addlog('Saved the file to: {}'.format(saveascsv))
+
     def load_structure(self):
 
         """Load existing heterojunction structures (.csv files.)"""
@@ -1396,7 +1686,7 @@ class FTIR_fittingtool_GUI(Frame):
         filelist = []
         try:
             for item in os.listdir(self.osdir):
-                if item[-4:None] == ".CSV":
+                if item[-4:None] == ".CSV" or item[-4:None] == ".csv":
                     filelist.append(item[0:-4])
         except FileNotFoundError:
             findornot = messagebox.askquestion(" ", "Structure folder not found. Do you want to relocate the folder manually?", icon='warning')
@@ -1436,6 +1726,8 @@ class FTIR_fittingtool_GUI(Frame):
         Structurenameget = StringVar(openfromfilewindow)
         Structurenameget.set("nBn_with_SL_barrier")  # initial value
 
+        filelist = sorted(filelist)
+
         Structurenamegetoption = OptionMenu(openfromfilewindow, Structurenameget, *filelist)
         # '*'  to receive each list item as a separate parameter.
         Structurenamegetoption.config(bg='#2b2b2b')
@@ -1473,7 +1765,7 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.buttonaddlayer.grid_forget()
                 getattr(self, "layertypevar{}".format(self.layernumber)).set(layer)
-                layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), "CdTe", "MCT", "SL")
+                layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
                 layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
                 layertypeoption1.grid(row=11 + self.layernumber, column=0, sticky=W+E)
 
@@ -1488,11 +1780,11 @@ class FTIR_fittingtool_GUI(Frame):
                 if check_or_not == 1:
                     checkbox1.select()
 
-                if self.layernumber < 8:
+                if self.layernumber < 16:
                     self.buttonaddlayer.grid(row=12 + self.layernumber, column=0, columnspan=4, sticky=W+E)
 
             for i in range(0, len(layerlist)):
-                if layerlist[i] in ("CdTe", "MCT", "SL"):
+                if layerlist[i] in self.available_materials:
                     add_layer_on_top(layerlist[i], xlist[i], dlist[i], checklist[i])
                 else:
                     self.addlog("Invalid Structure file.")
@@ -1528,7 +1820,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Save the customized structure to file. This is the best way to create structure files."""
 
-        saveascsv = filedialog.asksaveasfilename(defaultextension='.csv')
+        saveascsv = filedialog.asksaveasfilename(defaultextension='.CSV')
         if saveascsv is None:
             return
         if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
@@ -1566,10 +1858,12 @@ class FTIR_fittingtool_GUI(Frame):
         self.wavenumbers_cut = []
         self.trans_cut = []
 
-        if float(self.entry_32.get()) > 5000:
-            self.addlog('Please choose the cut range of fringes.')
-            return
-
+        addon = 0
+        if self.wavenumbers == [] and self.transmissions == []:
+            while addon <= 6000:
+                self.wavenumbers_cut.append(500 + addon)
+                self.trans_cut.append(0)
+                addon += 5
         for i in range(0, len(self.wavenumbers)):
             if float(self.entry_32.get()) > float(self.wavenumbers[i]) > float(self.entry_31.get()):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
@@ -1580,23 +1874,139 @@ class FTIR_fittingtool_GUI(Frame):
                              float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                              self.listbox, self.progress_var, self.wn_beingcalculated)
         self.peakvalues_fit = fitobject.returnpeakvalues()
-
-        try:
-            self.fitline2.pop(0).remove()
-            self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-        except (AttributeError, IndexError) as error:
+        self.reflections_fit = fitobject.returnreflections()
+        self.absorptions_fit = fitobject.returnabsorptions()
+        
+        if self.displayreflection == 0 and self.displayabsorption == 0:
             try:
-                self.fitline.pop(0).remove()
+                self.fitline2.pop(0).remove()
                 self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
             except (AttributeError, IndexError) as error:
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                except (AttributeError, IndexError) as error:
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
 
-        self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-        self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-        self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-        self.FTIRplot.set_ylabel('Transmission (%)')
-        self.FTIRplot.grid(True)
-        self.canvas.show()
+            try:
+                self.fitline3.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
+
+            try:
+                self.fitline4.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
+
+            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_ylabel('Transmission (%)')
+            self.FTIRplot.grid(True)
+            self.canvas.show()
+        elif self.displayreflection == 1 and self.displayabsorption == 0:
+            try:
+                self.fitline2.pop(0).remove()
+                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                except (AttributeError, IndexError) as error:
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+
+            try:
+                self.fitline3.pop(0).remove()
+                self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+                except (AttributeError, IndexError) as error:
+                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+
+            try:
+                self.fitline4.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
+
+            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_ylabel('Transmission/Reflection (%)')
+            self.FTIRplot.grid(True)
+            self.canvas.show()
+
+        elif self.displayreflection == 0 and self.displayabsorption == 1:
+            try:
+                self.fitline2.pop(0).remove()
+                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                except (AttributeError, IndexError) as error:
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+
+            try:
+                self.fitline4.pop(0).remove()
+                self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                except (AttributeError, IndexError) as error:
+                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+
+            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_ylabel('Transmission/Absorption (%)')
+            self.FTIRplot.grid(True)
+            self.canvas.show()
+
+            try:
+                self.fitline3.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
+
+        elif self.displayreflection == 1 and self.displayabsorption == 1:
+            try:
+                self.fitline2.pop(0).remove()
+                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                except (AttributeError, IndexError) as error:
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+
+            try:
+                self.fitline3.pop(0).remove()
+                self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+                except (AttributeError, IndexError) as error:
+                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+
+            try:
+                self.fitline4.pop(0).remove()
+                self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+            except (AttributeError, IndexError) as error:
+                try:
+                    self.fitline.pop(0).remove()
+                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                except (AttributeError, IndexError) as error:
+                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+
+            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_ylabel('Transmission/Reflection/Absorption (%)')
+            self.FTIRplot.grid(True)
+            self.canvas.show()
 
     def fit_fringes(self):
 
