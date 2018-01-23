@@ -227,7 +227,10 @@ class FIT_FTIR:
         self.wl_k_ZnS = []
         self.k_ZnS = []
 
-        os.chdir('/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Refractive_Index')
+        self.osdir = os.getcwd()
+        self.n_dir = os.getcwd() + "/Refractive_Index"
+
+        os.chdir(self.n_dir)
         with open('ZnSe_n.csv', 'r') as f1:
             reader = csv.reader(f1, delimiter=',')
             for row in reader:
@@ -287,6 +290,8 @@ class FIT_FTIR:
                     self.k_ZnS.append(float(row[1]))
                 except ValueError:
                     pass
+
+        os.chdir(self.osdir)
 
     def cal_n(self, lamda, material):
         if material == "CdTe" or material == "MCT" or material == "SL":
@@ -1032,7 +1037,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.text2 = ''
         self.wn_beingcalculated = DoubleVar()
 
-        self.osdir = ''
+        self.osdir = os.getcwd()
 
         self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Air"]
 
@@ -1679,27 +1684,27 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Load existing heterojunction structures (.csv files.)"""
 
-        self.osdir = "/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure"
+        self.structure_dir = self.osdir + "/Preload_Structure"
 
         filelist = []
         try:
-            for item in os.listdir(self.osdir):
+            for item in os.listdir(self.structure_dir):
                 if item[-4:None] == ".CSV" or item[-4:None] == ".csv":
                     filelist.append(item[0:-4])
         except FileNotFoundError:
             findornot = messagebox.askquestion(" ", "Structure folder not found. Do you want to relocate the folder manually?", icon='warning')
             if findornot == 'yes':
-                self.osdir = filedialog.askdirectory()
-                for item in os.listdir(self.osdir):
+                self.structure_dir = filedialog.askdirectory()
+                for item in os.listdir(self.structure_dir):
                     if item[-4:None] == ".CSV":
                         filelist.append(item[0:-4])
-                self.addlog('Folder directory changed to {}'.format(self.osdir))
+                self.addlog('Folder directory changed to {}'.format(self.structure_dir))
             else:
                 return
 
         if filelist == []:
             self.addlog("No structure is found. ")
-            self.osdir = "/Users/apple/Dropbox/6.python/Projects/FTIR_fittingtool_v2/Preload_Structure2"
+            self.structure_dir = self.osdir + "/Preload_Structure"
             return
 
         openfromfilewindow = Toplevel()
@@ -1739,7 +1744,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.layernumber = 0
 
             self.Structurename = Structurenameget.get() + ".CSV"
-            filename = self.osdir + "/" + self.Structurename
+            filename = self.structure_dir + "/" + self.Structurename
 
             layerlist = []
             xlist = []
