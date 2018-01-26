@@ -1,6 +1,20 @@
 # FTIR_fittingtool_v2.50
 The second generation of FTIR data fitting tool. 
 
+System requirement: 
+
+Mac OS/ Windows / Linux (Not tested)
+
+python 3.4 +
+
+The following packages need to be installed before running the program: 
+
+matplotlib, numpy. 
+
+How to run it: 
+
+Download the whole package to local, and then run "FTIR_fittingtool_2_class.py". 
+
 For any questions, please contact pman3@uic.edu.
 
 © 1, 2018 Peihong Man.
