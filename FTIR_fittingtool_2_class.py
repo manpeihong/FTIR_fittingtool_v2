@@ -1008,7 +1008,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.frame3.pack_propagate(1)
 
         LABEL_WIDTH = 13
-        hld = 0
+        self.hld = 0
 
         # seperateline = Label(self.frame3, text='-'*40, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         # seperateline.grid(row=9, column=0, columnspan=4)
@@ -1032,7 +1032,7 @@ class FTIR_fittingtool_GUI(Frame):
         suboption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
         suboption1.grid(row=27, column=0, sticky=W+E)
 
-        self.entry_d_0 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH, highlightthickness=hld, borderwidth=0)
+        self.entry_d_0 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH, highlightthickness=self.hld, borderwidth=0)
         self.entry_d_0.grid(row=27, column=2, sticky=W+E)
         self.entry_d_0.insert(0, '500')
 
@@ -1060,98 +1060,98 @@ class FTIR_fittingtool_GUI(Frame):
               IntVar(), IntVar(), IntVar(), IntVar(), IntVar()
 
         self.entry_x_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_x_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_x_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
 
         self.entry_d_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=hld, borderwidth=0)
+                               highlightthickness=self.hld, borderwidth=0)
         self.entry_d_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
         self.entry_d_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=hld, borderwidth=0)
+                                highlightthickness=self.hld, borderwidth=0)
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
@@ -1165,7 +1165,7 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "layertypevar{}".format(self.layernumber)).set("MCT")
 
             layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
-            layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=hld, borderwidth=0)
+            layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
             layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W+E, pady=0, ipady=0)
 
             getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
@@ -1181,7 +1181,7 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '0.0')
 
             checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)),
-                                    bg='#2b2b2b', highlightthickness=hld, borderwidth=0)
+                                    bg='#2b2b2b', highlightthickness=self.hld, borderwidth=0)
             checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
             checkbox1.select()
 
@@ -1844,7 +1844,7 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "layertypevar{}".format(self.layernumber)).set(layer)
                 layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)),
                                               *self.available_materials)
-                layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
+                layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
                 layertypeoption1.grid(row=27 -self.layernumber, column=0, sticky=W+E)
 
                 getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
@@ -1853,8 +1853,8 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2)
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, d)
 
-                checkbox1 = Checkbutton(self.frame3, text="",
-                                        variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b')
+                checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), 
+                                        bg='#2b2b2b', highlightthickness=self.hld, borderwidth=0)
                 checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
                 if check_or_not == 1:
                     checkbox1.select()
