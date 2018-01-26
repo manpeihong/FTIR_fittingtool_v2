@@ -19,12 +19,13 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 
-__version__ = '2.40'
+__version__ = '2.50'
 
 
 class FIT_FTIR:
-    def __init__(self, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
+    def __init__(self, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var, wn_beingcalculated):
+        self.temp = temp
         self.wns = wavenumbers
         self.trans = transmissions
         self.subd = subd
@@ -62,152 +63,12 @@ class FIT_FTIR:
 
         self.load_n_file()
 
-        if self.fittingtype == 1:
-            self.fit_curve()
-        elif self.fittingtype == 2:
+        self.adjust_d_on_temp()
+
+        if self.fittingtype == 2:
             self.show_fringes()
-        elif self.fittingtype == 0:
+        else:
             pass
-
-    def fit_curve(self):
-        for wn in self.wns:
-            self.lamda = 10000 / float(wn)
-            self.C1 = 0.5694 * math.pow(self.x, -1.5355)
-            if self.lamda < self.C1 * 1.17:
-                self.lamda = self.C1 * 1.17
-            self.E = 4.13566743 * 3 / 10 / self.lamda
-
-            self.R1 = self.cal_R(-1, self.x, self.lamda)
-            self.R2 = self.cal_R(self.x, 1, self.lamda)
-            self.R3 = self.cal_R(1, -1, self.lamda)
-
-            self.cal_alpha_all()
-
-            self.transs.append(float(self.cal_trans() * 100))
-
-        self.addlog('Fitting curve complete.')
-
-    def show_fringes(self):
-        self.peakvalues = []
-        self.reflections = []
-        self.absorptions = []
-        for wn in self.wns:
-            self.lamda = 10000 / float(wn)
-            self.E = 4.13566743 * 3 / 10 / self.lamda
-            self.peakvalues.append(self.cal_fringes_single(self.lamda)[0])
-            self.reflections.append(self.cal_fringes_single(self.lamda)[1])
-            self.absorptions.append(self.cal_fringes_single(self.lamda)[2])
-
-    def cal_fringes_single(self, lamda):
-        self.n_list = []
-        self.k_list = []
-        self.etas_list = []
-        self.etap_list = []
-        self.deltas_list = []
-        self.deltap_list = []
-        self.matrixs_list = []
-        self.matrixp_list = []
-
-        self.allresult = []
-
-        self.eta0s = np.cos(self.angle)
-        self.eta0p = 1 / np.cos(self.angle)
-
-        for i in range(0, len(self.layertype_list)):
-            if self.layertype_list[i] == "CdTe":
-                self.cal_initialpara(1)
-            elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
-                self.cal_initialpara(self.entry_x_list[i])
-            n = self.cal_n(lamda, self.layertype_list[i])
-            k = self.cal_k(lamda, self.layertype_list[i])
-            self.n_list.append(n)
-            self.k_list.append(k)
-            etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
-            etap = (n - 1j * k) * (n - 1j * k) / etas
-            deltas = 2 * np.pi / lamda * self.entry_d_list[i] * etas
-            deltap = 2 * np.pi / lamda * self.entry_d_list[i] * etas
-            self.etas_list.append(etas)
-            self.etap_list.append(etap)
-            self.deltas_list.append(deltas)
-            self.deltap_list.append(deltap)
-
-        if self.subtype == 1:
-            self.nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
-        elif self.subtype == 2:
-            self.nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
-        self.etasubs = np.sqrt(self.nsub * self.nsub - np.sin(self.angle) * np.sin(self.angle))
-        self.etasubp = self.nsub * self.nsub / self.etasubs
-
-        for i in range(0, len(self.layertype_list)):
-            matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) / self.etas_list[len(self.layertype_list) - i - 1]],
-                                       [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]), np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
-            matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) / self.etap_list[len(self.layertype_list) - i - 1]],
-                                       [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]), np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
-
-            self.matrixs_list.append(matrixs)
-            self.matrixp_list.append(matrixp)
-
-        submatrixs = np.array([[1], [self.etasubs]])
-        submatrixs.reshape(2, 1)
-        submatrixp = np.array([[1], [self.etasubp]])
-        submatrixp.reshape(2, 1)
-
-        products = self.matrixs_list[0]
-
-        for i in range(1, len(self.matrixs_list)):
-            products = np.dot(products, self.matrixs_list[i])
-
-        products = np.dot(products, submatrixs)
-        Bs = products.item(0)
-        Cs = products.item(1)
-
-        productp = self.matrixp_list[0]
-
-        for i in range(1, len(self.matrixp_list)):
-            productp = np.dot(productp, self.matrixp_list[i])
-
-        productp = np.dot(productp, submatrixp)
-
-        Bp = productp.item(0)
-        Cp = productp.item(1)
-
-        Zs = self.eta0s * Bs + Cs
-        Zp = self.eta0p * Bp + Cp
-        Z2s = self.eta0s * Bs - Cs
-        Z2p = self.eta0p * Bp - Cp
-
-        Ztops = Bs * (Cs.conjugate()) - self.etasubs
-        Ztopp = Bp * (Cp.conjugate()) - self.etasubp
-
-        Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
-        Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
-
-        Rs = Z2s / Zs * ((Z2s / Zs).conjugate())
-        Rp = Z2p / Zp * ((Z2p / Zp).conjugate())
-
-        As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
-        Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
-
-        transmission = (Ts + Tp) / 2 * 100 * self.scalefactor
-        reflection = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
-        absorption = (As + Ap) / 2 * 100 * 1
-
-        self.allresult.append(float(transmission))
-        self.allresult.append(float(reflection))
-        self.allresult.append(float(absorption))
-
-        return self.allresult
-
-    def cal_initialpara(self, x):
-        self.T = 300
-        self.A1 = 13.173 - 9.852 * x + 2.909 * x * x + 0.0001 * (300 - self.T)
-        self.B1 = 0.83 - 0.246 * x - 0.0961 * x * x + 8 * 0.00001 * (300 - self.T)
-        self.C1 = 6.706 - 14.437 * x + 8.531 * x * x + 7 * 0.00001 * (300 - self.T)
-        self.D1 = 1.953 * 0.00001 - 0.00128 * x + 1.853 * 0.00001 * x * x
-        self.T0 = 81.9
-        self.E0 = -0.3424 + 1.838 * x
-        self.sigma = 3.267 * np.power(10, 4) * (1 + x)
-        self.alpha0 = np.exp(-18.88 + 3.61 * x)
 
     def load_n_file(self):
         self.wl_n_ZnSe = []
@@ -226,6 +87,10 @@ class FIT_FTIR:
         self.n_ZnS = []
         self.wl_k_ZnS = []
         self.k_ZnS = []
+        self.wl_n_Si3N4 = []
+        self.n_Si3N4 = []
+        self.wl_k_Si3N4 = []
+        self.k_Si3N4 = []
 
         self.osdir = os.getcwd()
         self.n_dir = os.getcwd() + "/Refractive_Index"
@@ -290,8 +155,161 @@ class FIT_FTIR:
                     self.k_ZnS.append(float(row[1]))
                 except ValueError:
                     pass
+        with open('Si3N4_n.csv', 'r') as f9:
+            reader = csv.reader(f9, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_n_Si3N4.append(float(row[0]))
+                    self.n_Si3N4.append(float(row[1]))
+                except ValueError:
+                    pass
+
+        with open('Si3N4_k.csv', 'r') as f10:
+            reader = csv.reader(f10, delimiter=',')
+            for row in reader:
+                try:
+                    self.wl_k_Si3N4.append(float(row[0]))
+                    self.k_Si3N4.append(float(row[1]))
+                except ValueError:
+                    pass
 
         os.chdir(self.osdir)
+
+    def adjust_d_on_temp(self):
+        for i in range(0, len(self.layertype_list)):
+            if self.layertype_list[i] == "ZnSe":
+                self.entry_d_list[i] = self.entry_d_list[i] * (1 + 7.6E-6 * (self.temp - 300))
+            elif self.layertype_list[i] == "BaF2":
+                self.entry_d_list[i] = self.entry_d_list[i] * (1 + 18.1E-6 * (self.temp - 300))
+            elif self.layertype_list[i] == "Ge":
+                self.entry_d_list[i] = self.entry_d_list[i] * (1 + 5.9E-6 * (self.temp - 300))
+            elif self.layertype_list[i] == "ZnS":
+                self.entry_d_list[i] = self.entry_d_list[i] * (1 + 6.5E-6 * (self.temp - 300))
+            elif self.layertype_list[i] == "Si3N4":
+                self.entry_d_list[i] = self.entry_d_list[i] * (1 + 2.52E-6 * (self.temp - 300))
+
+    def show_fringes(self):
+        self.peakvalues = []
+        self.reflections = []
+        self.absorptions = []
+        for wn in self.wns:
+            self.lamda = 10000 / float(wn)
+            self.E = 4.13566743 * 3 / 10 / self.lamda
+            self.peakvalues.append(self.cal_fringes_single(self.lamda)[0])
+            self.reflections.append(self.cal_fringes_single(self.lamda)[1])
+            self.absorptions.append(self.cal_fringes_single(self.lamda)[2])
+
+    def cal_fringes_single(self, lamda):
+        self.n_list = []
+        self.k_list = []
+        self.etas_list = []
+        self.etap_list = []
+        self.deltas_list = []
+        self.deltap_list = []
+        self.matrixs_list = []
+        self.matrixp_list = []
+
+        self.allresult = []
+
+        self.eta0s = np.cos(self.angle)
+        self.eta0p = 1 / np.cos(self.angle)
+
+        for i in range(0, len(self.layertype_list)):
+            if self.layertype_list[i] == "CdTe":
+                self.cal_initialpara(1)
+            elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
+                self.cal_initialpara(self.entry_x_list[i])
+            n = self.cal_n(lamda, self.layertype_list[i])
+            k = self.cal_k(lamda, self.layertype_list[i])
+            self.n_list.append(n)
+            self.k_list.append(k)
+            etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
+            etap = (n - 1j * k) * (n - 1j * k) / etas
+            deltas = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+            deltap = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+            self.etas_list.append(etas)
+            self.etap_list.append(etap)
+            self.deltas_list.append(deltas)
+            self.deltap_list.append(deltap)
+
+        if self.subtype == 1:
+            self.nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
+        elif self.subtype == 2:
+            self.nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
+        elif self.subtype == 3:
+            self.nsub = 1
+        self.etasubs = np.sqrt(self.nsub * self.nsub - np.sin(self.angle) * np.sin(self.angle))
+        self.etasubp = self.nsub * self.nsub / self.etasubs
+
+        for i in range(0, len(self.layertype_list)):
+            matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) / self.etas_list[len(self.layertype_list) - i - 1]],
+                                       [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]), np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
+            matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) / self.etap_list[len(self.layertype_list) - i - 1]],
+                                       [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]), np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
+
+            self.matrixs_list.append(matrixs)
+            self.matrixp_list.append(matrixp)
+
+        submatrixs = np.array([[1], [self.etasubs]])
+        submatrixs.reshape(2, 1)
+        submatrixp = np.array([[1], [self.etasubp]])
+        submatrixp.reshape(2, 1)
+
+        products = self.matrixs_list[0]
+
+        for i in range(1, len(self.matrixs_list)):
+            products = np.dot(products, self.matrixs_list[i])
+
+        products = np.dot(products, submatrixs)
+        Bs = products.item(0)
+        Cs = products.item(1)
+
+        productp = self.matrixp_list[0]
+
+        for i in range(1, len(self.matrixp_list)):
+            productp = np.dot(productp, self.matrixp_list[i])
+
+        productp = np.dot(productp, submatrixp)
+
+        Bp = productp.item(0)
+        Cp = productp.item(1)
+
+        Zs = self.eta0s * Bs + Cs
+        Zp = self.eta0p * Bp + Cp
+        Z2s = self.eta0s * Bs - Cs
+        Z2p = self.eta0p * Bp - Cp
+
+        Ztops = Bs * (Cs.conjugate()) - self.etasubs
+        Ztopp = Bp * (Cp.conjugate()) - self.etasubp
+
+        Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
+        Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
+
+        Rs = Z2s / Zs * ((Z2s / Zs).conjugate())
+        Rp = Z2p / Zp * ((Z2p / Zp).conjugate())
+
+        As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
+        Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
+
+        transmission = (Ts + Tp) / 2 * 100 * self.scalefactor
+        reflection = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
+        absorption = (As + Ap) / 2 * 100 * 1
+
+        self.allresult.append(float(transmission))
+        self.allresult.append(float(reflection))
+        self.allresult.append(float(absorption))
+
+        return self.allresult
+
+    def cal_initialpara(self, x):
+        self.A1 = 13.173 - 9.852 * x + 2.909 * x * x + 0.0001 * (300 - self.temp)
+        self.B1 = 0.83 - 0.246 * x - 0.0961 * x * x + 8 * 0.00001 * (300 - self.temp)
+        self.C1 = 6.706 - 14.437 * x + 8.531 * x * x + 7 * 0.00001 * (300 - self.temp)
+        self.D1 = 1.953 * 0.00001 - 0.00128 * x + 1.853 * 0.00001 * x * x
+        self.T0 = 81.9
+        self.E0 = -0.3424 + 1.838 * x
+        self.sigma = 3.267 * np.power(10, 4) * (1 + x)
+        self.alpha0 = np.exp(-18.88 + 3.61 * x)
 
     def cal_n(self, lamda, material):
         if material == "CdTe" or material == "MCT" or material == "SL":
@@ -303,29 +321,44 @@ class FIT_FTIR:
         elif material == "ZnSe":
             for i in range(0, len(self.wl_n_ZnSe)):
                 if self.wl_n_ZnSe[i + 1] > lamda >= self.wl_n_ZnSe[i]:
-                    n = self.n_ZnSe[i]
+                    n = self.n_ZnSe[i] * (1 + 6E-5 * (self.temp - 300))
                     return n
 
         elif material == "BaF2":
             for i in range(0, len(self.wl_n_BaF2)):
                 if self.wl_n_BaF2[i + 1] > lamda >= self.wl_n_BaF2[i]:
-                    n = self.n_BaF2[i]
+                    n = self.n_BaF2[i] * (1 + -1.5E-5 * (self.temp - 300))
                     return n
 
         elif material == "Ge":
             try:
                 for i in range(0, len(self.wl_n_Ge)):
                     if self.wl_n_Ge[i + 1] > lamda >= self.wl_n_Ge[i]:
-                        n = self.n_Ge[i]
+                        n = self.n_Ge[i] * (1 + 4.24E-4 * (self.temp - 300))
                         return n
             except IndexError:
-                return 4  # The Ge refractive index file does not have enough range.
+                if lamda < self.wl_n_Ge[0]:
+                    return 4.1117
+                elif lamda > self.wl_n_Ge[-1]:
+                    return 3.9996
 
         elif material == "ZnS":
             for i in range(0, len(self.wl_n_ZnS)):
                 if self.wl_n_ZnS[i + 1] > lamda >= self.wl_n_ZnS[i]:
-                    n = self.n_ZnS[i]
+                    n = self.n_ZnS[i] * (1 + 5.43E-5 * (self.temp - 300))
                     return n
+
+        elif material == "Si3N4":
+            try:
+                for i in range(0, len(self.wl_n_Si3N4)):
+                    if self.wl_n_Si3N4[i + 1] > lamda >= self.wl_n_Si3N4[i]:
+                        n = self.n_Si3N4[i] * (1 + 2.5E-5 * (self.temp - 300))
+                        return n
+            except IndexError:
+                if lamda < self.wl_n_Si3N4[0]:
+                    return 2.46306
+                elif lamda > self.wl_n_Si3N4[-1]:
+                    return 3.68517
 
         elif material == "Si":
             n = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
@@ -360,113 +393,246 @@ class FIT_FTIR:
                     k = self.k_ZnS[i]
                     return k
 
+        elif material == "Si3N4":
+            try:
+                for i in range(0, len(self.wl_k_Si3N4)):
+                    if self.wl_k_Si3N4[i + 1] > lamda >= self.wl_k_Si3N4[i]:
+                        k = self.k_Si3N4[i]
+                        return k
+            except IndexError:
+                if lamda < self.wl_k_Si3N4[0]:
+                    return 0.00003
+                elif lamda > self.wl_k_Si3N4[-1]:
+                    return 0.92245
+
         elif material == "Si":
             return 0
 
         elif material == "Air":
             return 0
 
-    def cal_R(self, x1, x2, lamda):
-        if x1 != -1:
-            self.cal_initialpara(x1)
-            n1 = self.cal_n(lamda)
-        else:
-            n1 = 1
-        if x2 != -1:
-            self.cal_initialpara(x2)
-            n2 = self.cal_n(lamda)
-        else:
-            n2 = 1
-        self.R = ((n1 - n2) / (n1 + n2)) * ((n1 - n2) / (n1 + n2))
-        return self.R
+    def cal_absorption(self):
+        basek = 0
+        numbercount = 0
+        self.eta0s = np.cos(self.angle)
+        self.eta0p = 1 / np.cos(self.angle)
+        self.absorptions = []
+        self.ablayer = 0
 
-    def cal_n_array(self, lamda):
-        n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
-        return n
+        for i in range(0, len(self.wns)):
+            lamda = 10000 / self.wns[i]
+            trans = self.trans[i]
 
-    def cal_alpha(self):
-        self.alpha = self.alpha0 * math.exp(self.sigma * (self.E - self.E0) / (self.T + self.T0))
-        return self.alpha
+            numbercount += 1
+            if numbercount == 1:
+                percentage = (self.wns[i] - self.wns[0]) / (self.wns[len(self.wns) - 1] - self.wns[0]) * 100
+                self.progress_var.set(percentage)
+                self.wn_beingcalculated.set(self.wns[i])
+                numbercount = 0
 
-    def cal_alpha_all(self):
-        z = 0
-        xs = self.x
-        s = self.sfactor
-        deltaz = self.bufferd
-        self.a11 = 0
-        while z < self.layerd:
-            x_cal = (1 - (xs + s * self.layerd)) / (1 + 4 * (z / deltaz) * (z / deltaz)) + xs + s * self.layerd - s * z
-            self.cal_initialpara(x_cal)
-            self.alphaMCT += self.cal_alpha()
-            self.a11 += self.alphaMCT * 0.05
-            z += 0.05
-        self.a1 = math.exp(-self.a11)
-        self.cal_initialpara(1)
-        self.alphaCT = self.cal_alpha()
-        self.a2 = math.exp(-self.alphaCT * self.subd)
+            delta = 10
+            fitsuccess = 0
 
-    def cal_trans(self):
-        self.R23 = self.R2 + self.R3 * (1 - self.R2) * (1 - self.R2) * self.a2 * self.a2 / (
-        1 - self.R2 * self.R3 * self.a2 * self.a2)
-        self.T23 = (1 - self.R2) * (1 - self.R3) * self.a2 / (1 - self.R2 * self.R3 * self.a2 * self.a2)
+            if self.subtype == 1:
+                self.nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
+            elif self.subtype == 2:
+                self.nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
+            elif self.subtype == 3:
+                self.nsub = 1
+            self.etasubs = np.sqrt(self.nsub * self.nsub - np.sin(self.angle) * np.sin(self.angle))
+            self.etasubp = self.nsub * self.nsub / self.etasubs
 
-        self.T13 = (1 - self.R1) * (1 - self.H) * self.T23 * self.a1 \
-                   / (1 - self.R1 * (1 - self.H) * self.R23 * self.a1 * self.a1)
-        self.addlog(self.T13)
-        return self.T13
+            self.n_list = []
+            self.k_list = []
+            self.etas_list = []
+            self.etap_list = []
+            self.deltas_list = []
+            self.deltap_list = []
 
-    def cal_fringes_old(self, lamda):
-        self.peakvalue = []
-        self.n_list = []
-        self.k_list = []
-        self.etas_list = []
-        self.etap_list = []
-        self.deltas_list = []
-        self.deltap_list = []
-        self.matrixs_list = []
-        self.matrixp_list = []
+            for i in range(0, len(self.layertype_list)):
+                if self.layertype_list[i] == "CdTe":
+                    self.cal_initialpara(1)
+                elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
+                    self.cal_initialpara(self.entry_x_list[i])
+                n = self.cal_n(lamda, self.layertype_list[i])
+                k = 0
+                self.n_list.append(n)
+                self.k_list.append(k)
+                etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
+                etap = (n - 1j * k) * (n - 1j * k) / etas
+                deltas = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+                deltap = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+                self.etas_list.append(etas)
+                self.etap_list.append(etap)
+                self.deltas_list.append(deltas)
+                self.deltap_list.append(deltap)
+
+                if self.checklayer_list[i] == 1:
+                    self.ablayer = i
+
+            for k_test in np.arange(0, 1, 0.001):
+                self.matrixs_list = []
+                self.matrixp_list = []
+
+                n = self.n_list[self.ablayer]
+                k = k_test
+                self.k_list[self.ablayer] = k
+                etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
+                etap = (n - 1j * k) * (n - 1j * k) / etas
+                deltas = 2 * np.pi / lamda * self.entry_d_list[self.ablayer] * etas
+                deltap = 2 * np.pi / lamda * self.entry_d_list[self.ablayer] * etas
+                self.etas_list[self.ablayer] = etas
+                self.etap_list[self.ablayer] = etap
+                self.deltas_list[self.ablayer] = deltas
+                self.deltap_list[self.ablayer] = deltap
+
+                for i in range(0, len(self.layertype_list)):
+                    matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]),
+                                          1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) / self.etas_list[
+                                              len(self.layertype_list) - i - 1]],
+                                         [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(
+                                             self.deltas_list[len(self.layertype_list) - i - 1]),
+                                          np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
+                    matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]),
+                                          1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) / self.etap_list[
+                                              len(self.layertype_list) - i - 1]],
+                                         [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(
+                                             self.deltap_list[len(self.layertype_list) - i - 1]),
+                                          np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
+
+                    self.matrixs_list.append(matrixs)
+                    self.matrixp_list.append(matrixp)
+
+                submatrixs = np.array([[1], [self.etasubs]])
+                submatrixs.reshape(2, 1)
+                submatrixp = np.array([[1], [self.etasubp]])
+                submatrixp.reshape(2, 1)
+
+                products = self.matrixs_list[0]
+
+                for i in range(1, len(self.matrixs_list)):
+                    products = np.dot(products, self.matrixs_list[i])
+
+                products = np.dot(products, submatrixs)
+                Bs = products.item(0)
+                Cs = products.item(1)
+
+                productp = self.matrixp_list[0]
+
+                for i in range(1, len(self.matrixp_list)):
+                    productp = np.dot(productp, self.matrixp_list[i])
+
+                productp = np.dot(productp, submatrixp)
+
+                Bp = productp.item(0)
+                Cp = productp.item(1)
+
+                Zs = self.eta0s * Bs + Cs
+                Zp = self.eta0p * Bp + Cp
+
+                Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
+                Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
+
+                peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
+
+                if abs(peakvalue - trans) <= delta:
+                    fitsuccess = 1
+                    delta = abs(peakvalue - trans)
+                    basek = k_test
+
+            if fitsuccess == 1:
+                ab = 4 * np.pi * basek / lamda * 10000
+                self.absorptions.append(ab)
+            else:
+                self.addlog('Fitting failed at wavenumber = {}cm-1'.format(self.wns[i]))
+                self.absorptions.append(0)
+
+        self.addlog('Fitting complete!')
+        return self.absorptions
+
+    def cal_absorption_single(self, wn):
+        basek = 0
+        i = 0
 
         self.eta0s = np.cos(self.angle)
         self.eta0p = 1 / np.cos(self.angle)
 
-        for i in range(0, len(self.layertype_list)):
-            if self.layertype_list[i] == "CdTe":
-                self.cal_initialpara(1)
+        while True:
+            if self.wns[i + 1] > wn >= self.wns[i]:
+                break
             else:
-                self.cal_initialpara(self.entry_x_list[i])
-            n = self.cal_n_array(lamda)
-            k = 0
-            self.n_list.append(n)
-            self.k_list.append(k)
-            etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
-            etap = (n - 1j * k) * (n - 1j * k) / etas
-            deltas = 2 * np.pi / lamda * self.entry_d_list[i] * etas
-            deltap = 2 * np.pi / lamda * self.entry_d_list[i] * etas
-            self.etas_list.append(etas)
-            self.etap_list.append(etap)
-            self.deltas_list.append(deltas)
-            self.deltap_list.append(deltap)
+                i += 1
 
-        if self.subtype == 1:
-            self.nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
-        elif self.subtype == 2:
-            self.nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
-        self.etasubs = np.sqrt(self.nsub * self.nsub - np.sin(self.angle) * np.sin(self.angle))
-        self.etasubp = self.nsub * self.nsub / self.etasubs
+        lamda = 10000 / self.wns[i]
+        trans = self.trans[i]
 
-        for l in range(0, len(lamda)):
+        delta = 10
+        fitsuccess = 0
+
+        for k_test in np.arange(0, 1, 0.001):
+
+            self.n_list = []
+            self.k_list = []
+            self.etas_list = []
+            self.etap_list = []
+            self.deltas_list = []
+            self.deltap_list = []
+            self.matrixs_list = []
+            self.matrixp_list = []
+
             for i in range(0, len(self.layertype_list)):
-                matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1][l]), 1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1][l]) / self.etas_list[len(self.layertype_list) - i - 1][l]],
-                                           [1j * self.etas_list[len(self.layertype_list) - i - 1][l] * np.sin(self.deltas_list[len(self.layertype_list) - i - 1][l]), np.cos(self.deltas_list[len(self.layertype_list) - i - 1][l])]])
-                matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1][l]), 1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1][l]) / self.etap_list[len(self.layertype_list) - i - 1][l]],
-                                           [1j * self.etap_list[len(self.layertype_list) - i - 1][l] * np.sin(self.deltap_list[len(self.layertype_list) - i - 1][l]), np.cos(self.deltap_list[len(self.layertype_list) - i - 1][l])]])
+                if self.layertype_list[i] == "CdTe":
+                    self.cal_initialpara(1)
+                elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
+                    self.cal_initialpara(self.entry_x_list[i])
+                n = self.cal_n(lamda, self.layertype_list[i])
+                if self.checklayer_list[i] == 0:
+                    k = 0
+                else:
+                    k = k_test
+                self.n_list.append(n)
+                self.k_list.append(k)
+                etas = np.sqrt((n - 1j * k) * (n - 1j * k) - np.sin(self.angle) * np.sin(self.angle))
+                etap = (n - 1j * k) * (n - 1j * k) / etas
+                deltas = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+                deltap = 2 * np.pi / lamda * self.entry_d_list[i] * etas
+                self.etas_list.append(etas)
+                self.etap_list.append(etap)
+                self.deltas_list.append(deltas)
+                self.deltap_list.append(deltap)
+
+            if self.subtype == 1:
+                self.nsub = np.sqrt(
+                    11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
+            elif self.subtype == 2:
+                self.nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
+            elif self.subtype == 3:
+                self.nsub = 1
+            self.etasubs = np.sqrt(self.nsub * self.nsub - np.sin(self.angle) * np.sin(self.angle))
+            self.etasubp = self.nsub * self.nsub / self.etasubs
+
+            for i in range(0, len(self.layertype_list)):
+                matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]),
+                                      1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) /
+                                      self.etas_list[
+                                          len(self.layertype_list) - i - 1]],
+                                     [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(
+                                         self.deltas_list[len(self.layertype_list) - i - 1]),
+                                      np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
+                matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]),
+                                      1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) /
+                                      self.etap_list[
+                                          len(self.layertype_list) - i - 1]],
+                                     [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(
+                                         self.deltap_list[len(self.layertype_list) - i - 1]),
+                                      np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
 
                 self.matrixs_list.append(matrixs)
                 self.matrixp_list.append(matrixp)
 
-            submatrixs = np.array([[1], [self.etasubs[l]]])
+            submatrixs = np.array([[1], [self.etasubs]])
             submatrixs.reshape(2, 1)
-            submatrixp = np.array([[1], [self.etasubp[l]]])
+            submatrixp = np.array([[1], [self.etasubp]])
             submatrixp.reshape(2, 1)
 
             products = self.matrixs_list[0]
@@ -491,297 +657,15 @@ class FIT_FTIR:
             Zs = self.eta0s * Bs + Cs
             Zp = self.eta0p * Bp + Cp
 
-            Ts = 4 * self.eta0s * self.etasubs[l] / Zs / Zs.conjugate()
-            Tp = 4 * self.eta0p * self.etasubp[l] / Zp / Zp.conjugate()
+            Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
+            Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
 
-            self.peakvalue.append(float((Ts + Tp)) / 2 * 100 * self.scalefactor)
-
-        print(self.peakvalue)
-
-        return self.peakvalue
-
-    def cal_absorption(self):
-        basek = 0
-        angle = self.angle
-        self.absorptions = []
-        numbercount = 0
-
-        scalefactor = self.scalefactor
-        based = self.based
-
-        eta0s = np.cos(angle)
-        eta0p = 1 / np.cos(angle)
-
-        for i in range(0, len(self.wns)):
-            lamda = 10000 / self.wns[i]
-            trans = self.trans[i]
-
-            numbercount += 1
-            if numbercount == 1:
-                percentage = (self.wns[i] - self.wns[0]) / (self.wns[len(self.wns) - 1] - self.wns[0]) * 100
-                self.progress_var.set(percentage)
-                self.wn_beingcalculated.set(self.wns[i])
-                # timemin = 16 / 5810 * len(self.wns) * (1 - percentage / 100)
-                # second1, minleft = math.modf(timemin)
-                # secleft = second1 * 60
-                # self.addlog('{0:.2f}% Complete. Estimated time remaining: {1:02d}:{2:02d} '.format(percentage, int(minleft), int(secleft)))
-                numbercount = 0
-
-            delta = 10
-            fitsuccess = 0
-
-            self.cal_initialpara(1)
-            n1 = self.cal_n(lamda)
-            k1 = 0
-            eta1s = np.sqrt((n1 - 1j * k1) * (n1 - 1j * k1) - np.sin(angle) * np.sin(angle))
-            eta1p = (n1 - 1j * k1) * (n1 - 1j * k1) / eta1s
-            delta1s = 2 * np.pi / lamda * self.capd * eta1s
-            delta1p = 2 * np.pi / lamda * self.capd * eta1s
-
-            self.cal_initialpara(self.mctcapx)
-            n2 = self.cal_n(lamda)
-            k2 = 0
-            eta2s = np.sqrt((n2 - 1j * k2) * (n2 - 1j * k2) - np.sin(angle) * np.sin(angle))
-            eta2p = (n2 - 1j * k2) * (n2 - 1j * k2) / eta2s
-            delta2s = 2 * np.pi / lamda * self.mctcapd * eta2s
-            delta2p = 2 * np.pi / lamda * self.mctcapd * eta2s
-
-            self.cal_initialpara(self.x)
-            n3 = self.cal_n(lamda)
-
-            self.cal_initialpara(self.bufferx)
-            n4 = self.cal_n(lamda)
-            k4 = 0
-            eta4s = np.sqrt((n4 - 1j * k4) * (n4 - 1j * k4) - np.sin(angle) * np.sin(angle))
-            eta4p = (n4 - 1j * k4) * (n4 - 1j * k4) / eta4s
-            delta4s = 2 * np.pi / lamda * self.bufferd * eta4s
-            delta4p = 2 * np.pi / lamda * self.bufferd * eta4s
-
-            self.cal_initialpara(1)
-            n5 = self.cal_n(lamda)
-            k5 = 0
-            eta5s = np.sqrt((n5 - 1j * k5) * (n5 - 1j * k5) - np.sin(angle) * np.sin(angle))
-            eta5p = (n5 - 1j * k5) * (n5 - 1j * k5) / eta5s
-            delta5s = 2 * np.pi / lamda * self.subd * eta5s
-            delta5p = 2 * np.pi / lamda * self.subd * eta5s
-
-            if self.subtype == 1:
-                nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
-            elif self.subtype == 2:
-                nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
-            etasubs = np.sqrt(nsub * nsub - np.sin(angle) * np.sin(angle))
-            etasubp = nsub * nsub / etasubs
-
-            matrix1s = np.matrix([[np.cos(delta1s), 1j * np.sin(delta1s) / eta1s],
-                                  [1j * eta1s * np.sin(delta1s), np.cos(delta1s)]])
-            matrix1p = np.matrix([[np.cos(delta1p), 1j * np.sin(delta1p) / eta1p],
-                                  [1j * eta1p * np.sin(delta1p), np.cos(delta1p)]])
-
-            matrix2s = np.matrix([[np.cos(delta2s), 1j * np.sin(delta2s) / eta2s],
-                                  [1j * eta2s * np.sin(delta2s), np.cos(delta2s)]])
-            matrix2p = np.matrix([[np.cos(delta2p), 1j * np.sin(delta2p) / eta2p],
-                                  [1j * eta2p * np.sin(delta2p), np.cos(delta2p)]])
-
-            submatrixs = np.array([[1], [etasubs]])
-            submatrixs.reshape(2, 1)
-            submatrixp = np.array([[1], [etasubp]])
-            submatrixp.reshape(2, 1)
-
-            product1s = np.dot(matrix1s, matrix2s)
-            product1p = np.dot(matrix1p, matrix2p)
-
-            for k in np.arange(0, 1, 0.001):
-                k3 = k
-                eta3s = np.sqrt((n3 - 1j * k3) * (n3 - 1j * k3) - np.sin(angle) * np.sin(angle))
-                eta3p = (n3 - 1j * k3) * (n3 - 1j * k3) / eta3s
-                delta3s = 2 * np.pi / lamda * based * eta3s
-                delta3p = 2 * np.pi / lamda * based * eta3s
-
-                matrix3s = np.matrix([[np.cos(delta3s), 1j * np.sin(delta3s) / eta3s],
-                                      [1j * eta3s * np.sin(delta3s), np.cos(delta3s)]])
-                matrix3p = np.matrix([[np.cos(delta3p), 1j * np.sin(delta3p) / eta3p],
-                                      [1j * eta3p * np.sin(delta3p), np.cos(delta3p)]])
-
-                matrix4s = np.matrix([[np.cos(delta4s), 1j * np.sin(delta4s) / eta4s],
-                                      [1j * eta4s * np.sin(delta4s), np.cos(delta4s)]])
-                matrix4p = np.matrix([[np.cos(delta4p), 1j * np.sin(delta4p) / eta4p],
-                                      [1j * eta4p * np.sin(delta4p), np.cos(delta4p)]])
-
-                matrix5s = np.matrix([[np.cos(delta5s), 1j * np.sin(delta5s) / eta5s],
-                                      [1j * eta5s * np.sin(delta5s), np.cos(delta5s)]])
-                matrix5p = np.matrix([[np.cos(delta5p), 1j * np.sin(delta5p) / eta5p],
-                                      [1j * eta5p * np.sin(delta5p), np.cos(delta5p)]])
-
-                product2s = np.dot(product1s, matrix3s)
-                product3s = np.dot(product2s, matrix4s)
-                product4s = np.dot(product3s, matrix5s)
-                product5s = np.dot(product4s, submatrixs)
-
-                Bs = product5s.item(0)
-                Cs = product5s.item(1)
-
-                product2p = np.dot(product1p, matrix3p)
-                product3p = np.dot(product2p, matrix4p)
-                product4p = np.dot(product3p, matrix5p)
-                product5p = np.dot(product4p, submatrixp)
-                Bp = product5p.item(0)
-                Cp = product5p.item(1)
-
-                Zs = eta0s * Bs + Cs
-                Zp = eta0p * Bp + Cp
-
-                Ts = 4 * eta0s * etasubs / Zs / Zs.conjugate()
-                Tp = 4 * eta0p * etasubp / Zp / Zp.conjugate()
-
-                peakvalue = (Ts + Tp) / 2 * 100 * scalefactor
-
-                if abs(peakvalue - trans) <= delta:
-                    fitsuccess = 1
-                    delta = abs(peakvalue - trans)
-                    basek = k
-
-            if fitsuccess == 1:
-                ab = 4 * np.pi * basek / lamda * 10000
-                self.absorptions.append(ab)
-            else:
-                self.addlog('Fitting failed at wavenumber = {}cm-1'.format(self.wns[i]))
-                self.absorptions.append(0)
-
-        self.addlog('Fitting complete!')
-        return self.absorptions
-
-    def cal_absorption_single(self, wn):
-        basek = 0
-        i = 0
-        angle = self.angle
-
-        scalefactor = self.scalefactor
-        based = self.based
-
-        eta0s = np.cos(angle)
-        eta0p = 1 / np.cos(angle)
-
-        while True:
-            if self.wns[i + 1] > wn >= self.wns[i]:
-                break
-            else:
-                i += 1
-
-        lamda = 10000 / self.wns[i]
-        trans = self.trans[i]
-
-        delta = 10
-        fitsuccess = 0
-
-        self.cal_initialpara(1)
-        n1 = self.cal_n(lamda)
-        k1 = 0
-        eta1s = np.sqrt((n1 - 1j * k1) * (n1 - 1j * k1) - np.sin(angle) * np.sin(angle))
-        eta1p = (n1 - 1j * k1) * (n1 - 1j * k1) / eta1s
-        delta1s = 2 * np.pi / lamda * self.capd * eta1s
-        delta1p = 2 * np.pi / lamda * self.capd * eta1s
-
-        self.cal_initialpara(self.mctcapx)
-        n2 = self.cal_n(lamda)
-        k2 = 0
-        eta2s = np.sqrt((n2 - 1j * k2) * (n2 - 1j * k2) - np.sin(angle) * np.sin(angle))
-        eta2p = (n2 - 1j * k2) * (n2 - 1j * k2) / eta2s
-        delta2s = 2 * np.pi / lamda * self.mctcapd * eta2s
-        delta2p = 2 * np.pi / lamda * self.mctcapd * eta2s
-
-        self.cal_initialpara(self.x)
-        n3 = self.cal_n(lamda)
-
-        self.cal_initialpara(self.bufferx)
-        n4 = self.cal_n(lamda)
-        k4 = 0
-        eta4s = np.sqrt((n4 - 1j * k4) * (n4 - 1j * k4) - np.sin(angle) * np.sin(angle))
-        eta4p = (n4 - 1j * k4) * (n4 - 1j * k4) / eta4s
-        delta4s = 2 * np.pi / lamda * self.bufferd * eta4s
-        delta4p = 2 * np.pi / lamda * self.bufferd * eta4s
-
-        self.cal_initialpara(1)
-        n5 = self.cal_n(lamda)
-        k5 = 0
-        eta5s = np.sqrt((n5 - 1j * k5) * (n5 - 1j * k5) - np.sin(angle) * np.sin(angle))
-        eta5p = (n5 - 1j * k5) * (n5 - 1j * k5) / eta5s
-        delta5s = 2 * np.pi / lamda * self.subd * eta5s
-        delta5p = 2 * np.pi / lamda * self.subd * eta5s
-
-        if self.subtype == 1:
-            nsub = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
-        elif self.subtype == 2:
-            nsub = np.sqrt(5.68 + 1.53 * lamda * lamda / (lamda * lamda - 0.366))
-        etasubs = np.sqrt(nsub * nsub - np.sin(angle) * np.sin(angle))
-        etasubp = nsub * nsub / etasubs
-
-        matrix1s = np.matrix([[np.cos(delta1s), 1j * np.sin(delta1s) / eta1s],
-                              [1j * eta1s * np.sin(delta1s), np.cos(delta1s)]])
-        matrix1p = np.matrix([[np.cos(delta1p), 1j * np.sin(delta1p) / eta1p],
-                              [1j * eta1p * np.sin(delta1p), np.cos(delta1p)]])
-
-        matrix2s = np.matrix([[np.cos(delta2s), 1j * np.sin(delta2s) / eta2s],
-                              [1j * eta2s * np.sin(delta2s), np.cos(delta2s)]])
-        matrix2p = np.matrix([[np.cos(delta2p), 1j * np.sin(delta2p) / eta2p],
-                              [1j * eta2p * np.sin(delta2p), np.cos(delta2p)]])
-
-        submatrixs = np.array([[1], [etasubs]])
-        submatrixs.reshape(2, 1)
-        submatrixp = np.array([[1], [etasubp]])
-        submatrixp.reshape(2, 1)
-
-        product1s = np.dot(matrix1s, matrix2s)
-        product1p = np.dot(matrix1p, matrix2p)
-
-        for k in np.arange(0, 1, 0.001):
-            k3 = k
-            eta3s = np.sqrt((n3 - 1j * k3) * (n3 - 1j * k3) - np.sin(angle) * np.sin(angle))
-            eta3p = (n3 - 1j * k3) * (n3 - 1j * k3) / eta3s
-            delta3s = 2 * np.pi / lamda * based * eta3s
-            delta3p = 2 * np.pi / lamda * based * eta3s
-
-            matrix3s = np.matrix([[np.cos(delta3s), 1j * np.sin(delta3s) / eta3s],
-                                  [1j * eta3s * np.sin(delta3s), np.cos(delta3s)]])
-            matrix3p = np.matrix([[np.cos(delta3p), 1j * np.sin(delta3p) / eta3p],
-                                  [1j * eta3p * np.sin(delta3p), np.cos(delta3p)]])
-
-            matrix4s = np.matrix([[np.cos(delta4s), 1j * np.sin(delta4s) / eta4s],
-                                  [1j * eta4s * np.sin(delta4s), np.cos(delta4s)]])
-            matrix4p = np.matrix([[np.cos(delta4p), 1j * np.sin(delta4p) / eta4p],
-                                  [1j * eta4p * np.sin(delta4p), np.cos(delta4p)]])
-
-            matrix5s = np.matrix([[np.cos(delta5s), 1j * np.sin(delta5s) / eta5s],
-                                  [1j * eta5s * np.sin(delta5s), np.cos(delta5s)]])
-            matrix5p = np.matrix([[np.cos(delta5p), 1j * np.sin(delta5p) / eta5p],
-                                  [1j * eta5p * np.sin(delta5p), np.cos(delta5p)]])
-
-            product2s = np.dot(product1s, matrix3s)
-            product3s = np.dot(product2s, matrix4s)
-            product4s = np.dot(product3s, matrix5s)
-            product5s = np.dot(product4s, submatrixs)
-
-            Bs = product5s.item(0)
-            Cs = product5s.item(1)
-
-            product2p = np.dot(product1p, matrix3p)
-            product3p = np.dot(product2p, matrix4p)
-            product4p = np.dot(product3p, matrix5p)
-            product5p = np.dot(product4p, submatrixp)
-            Bp = product5p.item(0)
-            Cp = product5p.item(1)
-
-            Zs = eta0s * Bs + Cs
-            Zp = eta0p * Bp + Cp
-
-            Ts = 4 * eta0s * etasubs / Zs / Zs.conjugate()
-            Tp = 4 * eta0p * etasubp / Zp / Zp.conjugate()
-
-            peakvalue = (Ts + Tp) / 2 * 100 * scalefactor
+            peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
 
             if abs(peakvalue - trans) <= delta:
                 fitsuccess = 1
                 delta = abs(peakvalue - trans)
-                basek = k
+                basek = k_test
 
         if fitsuccess == 1:
             ab = 4 * np.pi * basek / lamda * 10000
@@ -837,7 +721,7 @@ class cal_MCT_a:
             self.E0 = -0.295 + 1.87 * self.x - 0.28 * self.x * self.x + \
                       (6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
 
-            print(self.E0)
+            # print(self.E0)
             # Here E0 is the same equation as Eg in Chu's fomula.
             self.Eg = self.E0 - self.W / 2
             self.b = self.Eg / 2
@@ -886,28 +770,21 @@ class cal_MCT_a:
         return self.absorptions
 
 
-class ThreadedTask1(threading.Thread):
-    def __init__(self, queue_1, composition, layerd, wavenumbers, transmissions, capd, mctcapd, based, bufferd, subd,
-                 scalefactor, sfactor, factorh, angle, mctcapx, bufferx, maxtrans, subtype, fittype, listbox,
-                 progress_var, wn_beingcalculated):
+class ThreadedTask_absorption(threading.Thread):
+    def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
+                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var, wn_beingcalculated):
         threading.Thread.__init__(self)
         self.queue = queue_1
-        self.composition = composition
-        self.layerd = layerd
-        self.wavenumbers = wavenumbers
-        self.transmissions = transmissions
-        self.capd = capd
-        self.mctcapd = mctcapd
-        self.based = based
-        self.bufferd = bufferd
+        self.temp = temp
+        self.wns = wavenumbers
+        self.trans = transmissions
         self.subd = subd
+        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list \
+            = layertype_list, entry_x_list, entry_d_list, checklayer_list
         self.scalefactor = scalefactor
-        self.sfactor = sfactor
-        self.factorh = factorh
         self.angle = angle
-        self.mctcapx = mctcapx
-        self.bufferx = bufferx
-        self.maxtrans = maxtrans
+        self.CdTe_offset = CdTe_offset
+        self.HgTe_offset = HgTe_offset
         self.subtype = subtype
         self.fittype = fittype
         self.listbox = listbox
@@ -915,21 +792,20 @@ class ThreadedTask1(threading.Thread):
         self.wn_beingcalculated = wn_beingcalculated
 
     def run(self):
-        fitobject = FIT_FTIR(self.composition, self.layerd, self.wavenumbers, self.transmissions, self.capd,
-                             self.mctcapd,
-                             self.based, self.bufferd, self.subd, self.scalefactor, self.sfactor, self.factorh,
-                             self.angle,
-                             self.mctcapx, self.bufferx, self.maxtrans, self.subtype, self.fittype, self.listbox,
-                             self.progress_var, self.wn_beingcalculated)
+        fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
+                             self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
+                             self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
+                             self.wn_beingcalculated)
         self.queue.put(fitobject.cal_absorption())
 
 
 class ThreadedTask_fringes(threading.Thread):
-    def __init__(self, queue_1, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut, trans_cut,
+    def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut, trans_cut,
                  subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
                  subtype, fittype, listbox, progress_var, wn_beingcalculated):
         threading.Thread.__init__(self)
         self.queue = queue_1
+        self.temp = temp
         self.inital_CdTe = inital_CdTe
         self.inital_HgTe = inital_HgTe
         self.entry_d_list_initial = entry_d_list_initial
@@ -971,7 +847,7 @@ class ThreadedTask_fringes(threading.Thread):
                                     + float(self.entry_d_list_initial[i]) * (1 - float(self.entry_x_list[i])) * (1 + 0.01 * HgTe_offset)
                             self.entry_d_list[i] = new_d
 
-                fitobject = FIT_FTIR(self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list, self.entry_x_list,
+                fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list, self.entry_x_list,
                                      self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle,
                                      CdTe_offset, HgTe_offset, self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated)
                 self.peakvalues_fit = fitobject.returnpeakvalues()
@@ -1039,7 +915,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.osdir = os.getcwd()
 
-        self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Air"]
+        self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Si3N4", "Air"]
 
         self.displayreflection, self.displayabsorption = 0, 0
 
@@ -1055,58 +931,54 @@ class FTIR_fittingtool_GUI(Frame):
                             command=self.settings, highlightbackground='#262626', width=7)
         buttonsettings.pack(side=LEFT)
 
-        buttonopen = Button(self.frame0, text="Open(⌘+O)",
-                            command=self.openfromfile, highlightbackground='#262626', width=9)
-        buttonopen.pack(side=LEFT)
-
-        buttonsave= Button(self.frame0, text="Save result",
-                            command=self.savetofile, highlightbackground='#262626', width=9)
-        buttonsave.pack(side=LEFT)
-
-        buttonclear = Button(self.frame0, text="Clear(⌘+C)",
-                             command=self.clearalldata, highlightbackground='#262626', width=9)
+        buttonclear = Button(self.frame0, text="Clear",
+                             command=self.clearalldata, highlightbackground='#262626', width=5)
         buttonclear.pack(side=LEFT)
 
-        buttonload2 = Button(self.frame0, text="Load Structure(⌘+L)",
-                           command=self.load_structure, highlightbackground='#262626', width=15)
+        buttonopen = Button(self.frame0, text="(O)pen",
+                            command=self.openfromfile, highlightbackground='#262626', width=5)
+        buttonopen.pack(side=LEFT)
+
+        buttonload2 = Button(self.frame0, text="(L)oad Structure",
+                             command=self.load_structure, highlightbackground='#262626', width=12)
         buttonload2.pack(side=LEFT)
 
-        buttonsave2 = Button(self.frame0, text="Save Structure",
-                           command=self.save_structure, highlightbackground='#262626', width=12)
-        buttonsave2.pack(side=LEFT)
-
-        buttonsave = Button(self.frame0, text="Show Fringes (⌘+S)",
-                            command=self.show_fringes, highlightbackground='#262626', width=15)
+        buttonsave = Button(self.frame0, text="(S)how Fringes",
+                            command=self.show_fringes, highlightbackground='#262626', width=12)
         buttonsave.pack(side=RIGHT)
 
-        buttonfringes = Button(self.frame0, text="FIT Fringes(⌘+G)",
-                               command=self.fit_fringes, highlightbackground='#262626', width=13)
+        buttonfringes = Button(self.frame0, text="(F)it Fringes",
+                               command=self.fit_fringes, highlightbackground='#262626', width=10)
         buttonfringes.pack(side=RIGHT)
 
-        buttoncal = Button(self.frame0, text="Cal a(⌘+A)",
-                           command=self.cal_absorption, highlightbackground='#262626', width=9)
+        buttoncal = Button(self.frame0, text="Cal (a)",
+                           command=self.cal_absorption, highlightbackground='#262626', width=5)
         buttoncal.pack(side=RIGHT)
 
         buttonmct = Button(self.frame0, text="MCT a",
                            command=self.cal_MCT_absorption, highlightbackground='#262626', width=5)
         buttonmct.pack(side=RIGHT)
 
+        buttonsave2 = Button(self.frame0, text="Save Structure",
+                             command=self.save_structure, highlightbackground='#262626', width=12)
+        buttonsave2.pack(side=RIGHT)
+
+        buttonsave = Button(self.frame0, text="Save result",
+                            command=self.savetofile, highlightbackground='#262626', width=9)
+        buttonsave.pack(side=RIGHT)
+
         self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=23)
         self.filepath.pack(side=LEFT, fill=X)
 
-        if _platform == "win32" or _platform == "win64":
-            buttonopen.config(text='Open(Ct+O)')
-            buttonclear.config(text='Clear(Ct+C)')
-            buttoncal.config(text='Cal a(Ct+A)')
-            buttonload2.config(text='Load Structure(Ct+L)')
-            buttonfringes.config(text='FIT Fringes(Ct+G)')
-            buttonsave.config(text='Show Fringes (Ct+S)')
-
-        self.frame3 = Frame(self, width=150, bg='#2b2b2b')
-        self.frame3.pack(side=RIGHT, fill=Y, expand=True)
-        self.frame3.pack_propagate(0)
+        self.frame3_shell = Frame(self, width=150, bg='#2b2b2b')
+        self.frame3_shell.pack(side=RIGHT, fill=Y, expand=True)
+        self.frame3_shell.pack_propagate(1)
+        self.frame3 = Frame(self.frame3_shell, width=150, bg='#2b2b2b')
+        self.frame3.pack(side=RIGHT, fill=BOTH, expand=True)
+        self.frame3.pack_propagate(1)
 
         LABEL_WIDTH = 13
+        hld = 1
 
         # seperateline = Label(self.frame3, text='-'*40, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         # seperateline.grid(row=9, column=0, columnspan=4)
@@ -1116,78 +988,140 @@ class FTIR_fittingtool_GUI(Frame):
                 self.subtype = 1
             elif self.varsub.get() == "CdZnTe":
                 self.subtype = 2
+            elif self.varsub.get() == "Air":
+                self.subtype = 3
 
-        Label(self.frame3, text='Layer:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=10, column=0, sticky=E)
-        Label(self.frame3, text='x:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN1_WIDTH + 1).grid(row=10, column=1, sticky=E)
-        Label(self.frame3, text='d:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN2_WIDTH).grid(row=10, column=2, sticky=E)
+        Label(self.frame3, text='Layer:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=0, column=0, sticky=E)
+        Label(self.frame3, text='x:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1, sticky=E)
+        Label(self.frame3, text='d:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
 
         self.varsub = StringVar(self.frame3)
         self.varsub.set("Si")  # initial value
         self.varsub.trace("w", change_sub)
-        suboption1 = OptionMenu(self.frame3, self.varsub, "Si", "CdZnTe")
+        suboption1 = OptionMenu(self.frame3, self.varsub, "Si", "CdZnTe", "Air")
         suboption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
-        suboption1.grid(row=11, column=0, sticky=W+E)
+        suboption1.grid(row=27, column=0, sticky=W+E)
 
-        self.entry_d_0 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_0.grid(row=11, column=2)
+        self.entry_d_0 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH, highlightthickness=hld, borderwidth=0)
+        self.entry_d_0.grid(row=27, column=2, sticky=W+E)
         self.entry_d_0.insert(0, '500')
 
-        Label(self.frame3, text='  ', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=11, column=3, sticky=E)
+        Label(self.frame3, text='  ', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=27, column=3, sticky=E)
 
         self.layernumber = 0
         self.layertypevar1, self.layertypevar2, self.layertypevar3, self.layertypevar4, self.layertypevar5, \
         self.layertypevar6, self.layertypevar7, self.layertypevar8, self.layertypevar9 , self.layertypevar10, \
         self.layertypevar11, self.layertypevar12, self.layertypevar13, self.layertypevar14, self.layertypevar15, \
-        self.layertypevar16, self.layertypevar17, self.layertypevar18 \
+        self.layertypevar16, self.layertypevar17, self.layertypevar18, self.layertypevar19, self.layertypevar20, \
+        self.layertypevar21, self.layertypevar22, self.layertypevar23 \
             = StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), \
               StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), \
               StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), \
               StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), \
-              StringVar(self.frame3), StringVar(self.frame3)
+              StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3), \
+              StringVar(self.frame3), StringVar(self.frame3), StringVar(self.frame3)
         self.checklayer1, self.checklayer2, self.checklayer3, self.checklayer4, self.checklayer5, \
         self.checklayer6, self.checklayer7, self.checklayer8, self.checklayer9, self.checklayer10, \
         self.checklayer11, self.checklayer12, self.checklayer13, self.checklayer14, self.checklayer15, \
-        self.checklayer16, self.checklayer17, self.checklayer18 \
+        self.checklayer16, self.checklayer17, self.checklayer18, self.checklayer19, self.checklayer20, \
+        self.checklayer21, self.checklayer22, self.checklayer23 \
             = IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), \
-              IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar()
+              IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), \
+              IntVar(), IntVar(), IntVar(), IntVar(), IntVar()
 
-        self.entry_x_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
-        self.entry_x_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH)
+        self.entry_x_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_x_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_x_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
 
-        self.entry_d_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
-        self.entry_d_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH)
+        self.entry_d_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                               highlightthickness=hld, borderwidth=0)
+        self.entry_d_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
+        self.entry_d_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
+                                highlightthickness=hld, borderwidth=0)
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
@@ -1199,32 +1133,32 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "layertypevar{}".format(self.layernumber)).set("CdTe")
             else:
                 getattr(self, "layertypevar{}".format(self.layernumber)).set("MCT")
-            getattr(self, "layertypevar{}".format(self.layernumber)).trace("w", change_sub)
-            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
-            layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
-            layertypeoption1.grid(row=11 + self.layernumber, column=0, sticky=W+E)
 
-            getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=11 + self.layernumber, column=1, sticky=W+E)
+            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
+            layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=hld, borderwidth=0)
+            layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W+E, pady=0, ipady=0)
+
+            getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
             if self.layernumber == 1:
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, '1.00')
             else:
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, '0.30')
 
-            getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=11 + self.layernumber, column=2)
+            getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2, sticky=W+E)
             if self.layernumber == 1:
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '11.0')
             else:
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '0.0')
 
-            checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b')
-            checkbox1.grid(row=11 + self.layernumber, column=3, sticky=W)
+            checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b', highlightthickness=hld, borderwidth=0)
+            checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
             checkbox1.select()
 
-            if self.layernumber < 16:
-                self.buttonaddlayer.grid(row=12 + self.layernumber, column=0, columnspan=4, sticky=W+E)
+            if self.layernumber < 22:
+                self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
 
         self.buttonaddlayer = Button(self.frame3, text="Add layer on top", command=add_layer_on_top, highlightbackground='#2b2b2b', width=12)
-        self.buttonaddlayer.grid(row=12, column=0, columnspan=4, sticky=W+E)
+        self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
 
         self.frame4 = Frame(self, width=850, bg='#2b2b2b')
         self.frame4.pack(side=TOP, fill=X, expand=True)
@@ -1418,27 +1352,22 @@ class FTIR_fittingtool_GUI(Frame):
         def cal_absorption_event(event):
             self.cal_absorption()
 
-        def clearalldata_event(event):
-            self.clearalldata()
-
         def help_event(event):
             self.help()
 
         if _platform == "darwin" or _platform == "linux" or _platform == "linux2":
             masterroot.bind('<Command-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
-            masterroot.bind('<Command-g>', fit_fringes_event)
+            masterroot.bind('<Command-f>', fit_fringes_event)
             masterroot.bind('<Command-o>', openfromfile_event)
             masterroot.bind('<Command-s>', show_fringes_event)
             masterroot.bind('<Command-a>', cal_absorption_event)
-            masterroot.bind('<Command-c>', clearalldata_event)
             masterroot.bind('<Command-p>', help_event)
         elif _platform == "win32" or _platform == "win64":
             masterroot.bind('<Control-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
-            masterroot.bind('<Control-g>', fit_fringes_event)
+            masterroot.bind('<Control-f>', fit_fringes_event)
             masterroot.bind('<Control-o>', openfromfile_event)
             masterroot.bind('<Control-s>', show_fringes_event)
             masterroot.bind('<Control-a>', cal_absorption_event)
-            masterroot.bind('<Control-c>', clearalldata_event)
             masterroot.bind('<Control-p>', help_event)
 
         self.pack()
@@ -1456,7 +1385,6 @@ class FTIR_fittingtool_GUI(Frame):
         self.addlog('Use"Fit fringes" to find the best CdTe/HgTe offset. Currently this function is running slow.')
         self.addlog('The fit range for CdTe offset is +-10, and for HgTe is +-5. You can change them inside the code. '
                     'The accuracy of the fitting is questionable due to fundamental reasons. ')
-        self.addlog("A lot of functions currently are not working in version 2, check back on version 1 to see if they works. ")
         self.listbox.insert(END, '*' * 60)
 
     def setoffsets(self):
@@ -1488,7 +1416,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         settingwindow = Toplevel()
         w2 = 250  # width for the window
-        h2 = 100  # height for the window
+        h2 = 140  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
@@ -1503,18 +1431,26 @@ class FTIR_fittingtool_GUI(Frame):
         settingwindow.attributes('-topmost', 'true')
         settingwindow.grab_set()
 
-        Label(settingwindow, text="-------------Show Fringes------------", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0,
-                                                                                             columnspan=2, sticky=W)
+        Label(settingwindow, text="----------------General---------------",
+              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
+
+        Label(settingwindow, text="Temperature (K):", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=1, column=0, sticky=W)
+        entry_s1 = Entry(settingwindow, highlightbackground='#2b2b2b', width=10)
+        entry_s1.grid(row=1, column=1, sticky=W)
+        entry_s1.insert(0, self.Temp)
+
+        Label(settingwindow, text="-------------Show Fringes------------",
+              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=2, column=0, columnspan=2, sticky=W)
 
         self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
         checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp, bg='#2b2b2b', fg="#a9b7c6")
-        checkboxr.grid(row=1, column=0, columnspan=2, sticky=W)
+        checkboxr.grid(row=3, column=0, columnspan=2, sticky=W)
 
         if self.displayreflection == 1:
             checkboxr.select()
 
         checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp, bg='#2b2b2b', fg="#a9b7c6")
-        checkboxa.grid(row=2, column=0, columnspan=2, sticky=W)
+        checkboxa.grid(row=4, column=0, columnspan=2, sticky=W)
 
         if self.displayabsorption== 1:
             checkboxa.select()
@@ -1525,13 +1461,14 @@ class FTIR_fittingtool_GUI(Frame):
         def buttonOkayfuncton():
             self.displayreflection = self.displayreflection_temp.get()
             self.displayabsorption = self.displayabsorption_temp.get()
+            self.Temp = float(entry_s1.get())
 
             settingwindow.grab_release()
             self.masterroot.focus_set()
             settingwindow.destroy()
             return
 
-        def buttonCencelfuncton():
+        def buttonCancelfuncton():
             settingwindow.grab_release()
             self.masterroot.focus_set()
             settingwindow.destroy()
@@ -1542,10 +1479,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         buttonOK = Button(settingwindow, text="OK",
                           command=buttonOkayfuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=3, column=0, columnspan=1)
+        buttonOK.grid(row=5, column=0, columnspan=1)
         buttonOK = Button(settingwindow, text="Cancel",
-                          command=buttonCencelfuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=3, column=1, columnspan=1)
+                          command=buttonCancelfuncton, highlightbackground='#2b2b2b', width=10)
+        buttonOK.grid(row=5, column=1, columnspan=1)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
     def openfromfile(self):
@@ -1648,6 +1585,8 @@ class FTIR_fittingtool_GUI(Frame):
             self.addlog('Sample is probably characterized at EPIR.')
         elif len(self.wavenumbers) == 1946:
             self.addlog('Sample is probably characterized at UIC.')
+        self.addlog('Hint: To display absorption coefficient at any point instantly, '
+                    'a layer structure must be created or loaded and ONE absorption layer need to be checked.')
 
     def savetofile(self):
 
@@ -1683,6 +1622,13 @@ class FTIR_fittingtool_GUI(Frame):
     def load_structure(self):
 
         """Load existing heterojunction structures (.csv files.)"""
+
+        if self.layernumber != 0:
+            loadornot = messagebox.askquestion(" ", "A structure can only be loaded on bare subtrate. Clear everything to proceed?", icon='warning')
+            if loadornot == 'yes':
+                self.clearalldata()
+            else:
+                return
 
         self.structure_dir = self.osdir + "/Preload_Structure"
 
@@ -1770,21 +1716,21 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "layertypevar{}".format(self.layernumber)).set(layer)
                 layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
                 layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
-                layertypeoption1.grid(row=11 + self.layernumber, column=0, sticky=W+E)
+                layertypeoption1.grid(row=27 -self.layernumber, column=0, sticky=W+E)
 
-                getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=11 + self.layernumber, column=1, sticky=W+E)
+                getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, x)
 
-                getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=11 + self.layernumber, column=2)
+                getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2)
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, d)
 
                 checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b')
-                checkbox1.grid(row=11 + self.layernumber, column=3, sticky=W)
+                checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
                 if check_or_not == 1:
                     checkbox1.select()
 
-                if self.layernumber < 16:
-                    self.buttonaddlayer.grid(row=12 + self.layernumber, column=0, columnspan=4, sticky=W+E)
+                if self.layernumber < 22:
+                    self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
 
             for i in range(0, len(layerlist)):
                 if layerlist[i] in self.available_materials:
@@ -1872,7 +1818,7 @@ class FTIR_fittingtool_GUI(Frame):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
                 self.trans_cut.append(float(self.transmissions[i]))
 
-        fitobject = FIT_FTIR(self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
+        fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
                              float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                              self.listbox, self.progress_var, self.wn_beingcalculated)
@@ -2050,7 +1996,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.queue = queue.Queue()
 
-        ThreadedTask_fringes(self.queue, float(self.entry_23.get()), float(self.entry_24.get()), self.entry_d_list_initial,
+        ThreadedTask_fringes(self.queue, self.Temp, float(self.entry_23.get()), float(self.entry_24.get()), self.entry_d_list_initial,
                       self.layernumber, self.wavenumbers_cut, self.trans_cut, float(self.entry_d_0.get()),
                       self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                       float(self.entry_21.get()), float(self.entry_22.get()),
@@ -2079,7 +2025,7 @@ class FTIR_fittingtool_GUI(Frame):
                 self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
                 self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
 
-            fitobject = FIT_FTIR(self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
+            fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
                                  self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
                                  float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                                  self.listbox, self.progress_var, self.wn_beingcalculated)
@@ -2112,6 +2058,28 @@ class FTIR_fittingtool_GUI(Frame):
     def cal_absorption(self):
 
         """Calculate the absorption coefficient as a function of wavenumebrs. """
+
+        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
+
+        for i in range(1, self.layernumber + 1):
+            self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
+            self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
+            self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
+            self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
+
+        if len(self.layertype_list) == 0:
+            self.addlog("Please create or load a layer structure first!")
+            return
+
+        checktotal = 0
+        for check in self.checklayer_list:
+            checktotal += check
+        if checktotal == 0:
+            self.addlog("Please choose which layer is the absorption layer.")
+            return
+        elif checktotal > 1:
+            self.addlog("Please choose only one layer as the absorption layer.")
+            return
 
         self.wavenumbers_cut1 = []
         self.trans_cut1 = []
@@ -2146,13 +2114,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.addlog("Absorption calculation in process. Please wait...")
 
         self.queue = queue.Queue()
-        ThreadedTask1(self.queue, float(self.entry_24.get()), float(self.entry_29.get()), self.wavenumbers_cut1,
-                      self.trans_cut1, float(self.entry_25.get()), float(self.entry_26.get()),
-                      float(self.entry_27.get()),
-                      float(self.entry_28.get()), float(self.entry_290.get()), float(self.entry_291.get()),
-                      float(self.entry_292.get()), float(self.entry_293.get()), float(self.entry_294.get()),
-                      float(self.entry_295.get()), float(self.entry_296.get()), float(self.entry_21.get()),
-                      self.subtype, 0, self.listbox, self.progress_var, self.wn_beingcalculated).start()
+        ThreadedTask_absorption(self.queue, self.Temp, self.wavenumbers_cut1, self.trans_cut1, self.entry_d_0.get(),
+                                self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
+                                float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
+                                float(self.entry_24.get()), self.subtype, 0, self.listbox, self.progress_var,
+                                self.wn_beingcalculated).start()
         self.master.after(100, self.process_queue_absorption)
 
     def process_queue_absorption(self):
@@ -2225,7 +2191,7 @@ class FTIR_fittingtool_GUI(Frame):
     def cal_MCT_absorption(self):
         call_MCT_choosewindow = Toplevel()
         w2 = 250  # width for the window
-        h2 = 80  # height for the window
+        h2 = 100  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
@@ -2254,8 +2220,26 @@ class FTIR_fittingtool_GUI(Frame):
         # Samplenamegetoption.grab_set()
         methodnamegetoption.focus_set()
 
+        Label(call_MCT_choosewindow, text="MCT Composition x:", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=2,
+                                                                                                           column=0,
+                                                                                                           columnspan=1,
+                                                                                                           sticky=W)
+
+        entry_x = Entry(call_MCT_choosewindow, highlightbackground='#2b2b2b', width=5)
+        entry_x.grid(row=2, column=1, sticky=W)
+        entry_x.insert(0, "0.21")
+
+        if self.wavenumbers == []:
+            self.wavenumbers_MCT = []
+            addon = 0
+            while addon <= 6000:
+                self.wavenumbers_MCT.append(400 + addon)
+                addon += 5
+        else:
+            self.wavenumbers_MCT = self.wavenumbers
+
         def buttongofuncton():
-            fitobject = cal_MCT_a(self.entry_24.get(), self.wavenumbers, methodnameget.get())
+            fitobject = cal_MCT_a(float(entry_x.get()), self.wavenumbers_MCT, methodnameget.get())
 
             self.absorptions = fitobject.return_absorptions()
 
@@ -2265,7 +2249,7 @@ class FTIR_fittingtool_GUI(Frame):
                 pass
 
             self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_MCT = self.absorptionplot.plot(self.wavenumbers, self.absorptions,
+            self.fitline_MCT = self.absorptionplot.plot(self.wavenumbers_MCT, self.absorptions,
                                                             self.colororders2[self.numberofdata2])
             self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
@@ -2276,7 +2260,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.numberofdata2 += 1
 
             self.addlog("Showing MCT abosorption curve "
-                        "for x = {} using {}'s formula(1994).".format(self.entry_24.get(), methodnameget.get()))
+                        "for x = {} using {}'s formula.".format(float(entry_x.get()), methodnameget.get()))
 
             call_MCT_choosewindow.grab_release()
             self.masterroot.focus_set()
@@ -2293,7 +2277,7 @@ class FTIR_fittingtool_GUI(Frame):
                 f = open(saveascsv, "w")
 
                 for i in range(0, len(self.wavenumbers)):
-                    f.write("{0:.6e},{1:.6e}\n".format(self.wavenumbers[i], self.absorptions[i]))
+                    f.write("{0:.6e},{1:.6e}\n".format(self.wavenumbers_MCT[i], self.absorptions[i]))
 
                 f.close()
 
@@ -2312,161 +2296,12 @@ class FTIR_fittingtool_GUI(Frame):
 
         buttonOK = Button(call_MCT_choosewindow, text="Calculate",
                           command=buttongofuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=2, column=0, columnspan=1, sticky=W)
+        buttonOK.grid(row=3, column=0, columnspan=1, sticky=W)
 
         buttonOK = Button(call_MCT_choosewindow, text="Cancel",
                           command=buttonCancelfuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=2, column=1, columnspan=1, sticky=E)
+        buttonOK.grid(row=3, column=1, columnspan=1, sticky=E)
         call_MCT_choosewindow.bind('<Return>', buttongofunction_event)
-
-    def fit_fringes_old(self):
-        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
-
-        for i in range(1, self.layernumber + 1):
-            self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
-            self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
-            self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
-            self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
-
-        self.wavenumbers_cut = []
-        self.trans_cut = []
-
-        if float(self.entry_32.get()) > 5000:
-            self.addlog('Please choose the cut range of fringes.')
-            return
-
-        for i in range(0, len(self.wavenumbers)):
-            if float(self.entry_32.get()) > float(self.wavenumbers[i]) > float(self.entry_31.get()):
-                self.wavenumbers_cut.append(float(self.wavenumbers[i]))
-                self.trans_cut.append(float(self.transmissions[i]))
-
-        def fit_func(x, CdTe_offset, HgTe_offset):
-            self.entry_23.delete(0, END)
-            self.entry_23.insert(0, '{0:.2f}'.format(CdTe_offset))
-            self.entry_24.delete(0, END)
-            self.entry_24.insert(0, '{0:.2f}'.format(HgTe_offset))
-
-            self.setoffsets()
-
-            self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
-
-            for i in range(1, self.layernumber + 1):
-                self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
-                self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
-                self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
-                self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
-
-            lamda = 10000 / x
-            fitobject1 = FIT_FTIR(self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
-                             self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
-                             CdTe_offset, HgTe_offset, self.subtype, 0,
-                             self.listbox, self.progress_var, self.wn_beingcalculated)
-            return fitobject1.cal_fringes(lamda)
-
-        p0 = np.array([float(self.entry_23.get()), float(self.entry_24.get())])
-
-        self.popt, self.pcov = curve_fit(fit_func, self.wavenumbers_cut, self.trans_cut, p0,
-                                         bounds=([float(self.entry_23.get()) - 5, float(self.entry_24.get()) - 5],
-                                                 [float(self.entry_23.get()) + 5, float(self.entry_24.get()) + 5]))
-
-        self.entry_23.delete(0, END)
-        self.entry_23.insert(0, '{0:.2f}'.format(self.popt[0]))
-        self.entry_24.delete(0, END)
-        self.entry_24.insert(0, '{0:.2f}'.format(self.popt[1]))
-
-        self.setoffsets()
-
-        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
-
-        for i in range(1, self.layernumber + 1):
-            self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
-            self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
-            self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
-            self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
-
-        fitobject = FIT_FTIR(self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
-                             self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
-                             float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
-                             self.listbox, self.progress_var, self.wn_beingcalculated)
-        self.peakvalues_fit = fitobject.returnpeakvalues()
-
-        self.addlog('Fitting fringes complete.')
-
-        try:
-            self.fitline2.pop(0).remove()
-            self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-        except (AttributeError, IndexError) as error:
-            try:
-                self.fitline.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-            except (AttributeError, IndexError) as error:
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-
-        self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-        self.FTIRplot.set_ylim([0, self.transcut])
-        self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-        self.FTIRplot.set_ylabel('Transmission (%)')
-        self.FTIRplot.grid(True)
-        self.canvas.show()
-
-    def fit_fringes_old(self):
-        self.wavenumbers_cut = []
-        self.MSE = 10000000000
-        self.MSE_new = 0
-        self.fittedthickness = 0
-        if float(self.entry_32.get()) > 5000:
-            self.addlog('Please choose the cut range of fringes.')
-            return
-
-        for wn in self.wavenumbers:
-            if float(self.entry_32.get()) > float(wn) > float(self.entry_31.get()):
-                self.wavenumbers_cut.append(wn)
-        for layerthickness in np.arange(float(self.entry_29.get()) - 4, float(self.entry_29.get()) + 4, 0.01):
-            fitobject = FIT_FTIR(float(self.entry_24.get()), layerthickness, self.wavenumbers_cut,
-                                 float(self.entry_25.get()), float(self.entry_26.get()), float(self.entry_27.get()),
-                                 float(self.entry_28.get()), float(self.entry_290.get()), float(self.entry_291.get()),
-                                 float(self.entry_292.get()), float(self.entry_293.get()), float(self.entry_294.get()),
-                                 float(self.entry_21.get()), self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated)
-            self.peakvalues_fit = fitobject.returnpeakvalues()
-
-            for i in range(0, len(self.wavenumbers_cut)):
-                self.MSE_new += 1 / len(self.wavenumbers_cut) * (
-                float(self.peakvalues_fit[i]) - float(self.transmissions[i])) \
-                                * (float(self.peakvalues_fit[i]) - float(self.transmissions[i]))
-
-            if self.MSE_new < self.MSE:
-                self.MSE = self.MSE_new
-                self.fittedthickness = layerthickness
-            self.MSE_new = 0
-
-        self.entry_29.delete(0, END)
-        self.entry_29.insert(0, "%.2f" % self.fittedthickness)
-
-        fitobject = FIT_FTIR(float(self.entry_24.get()),
-                             self.fittedthickness, self.wavenumbers_cut, float(self.entry_28.get()),
-                             float(self.entry_290.get()), float(self.entry_291.get()), float(self.entry_292.get()),
-                             float(self.entry_293.get()), float(self.entry_21.get()), self.subtype, 2, self.listbox,
-                             self.progress_var, self.wn_beingcalculated)
-        self.peakvalues_fit = fitobject.returnpeakvalues()
-
-        self.addlog('Fitting fringes complete. MSE={}'.format(self.MSE))
-
-        try:
-            self.fitline2.pop(0).remove()
-            self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-        except (AttributeError, IndexError) as error:
-            try:
-                self.fitline.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-            except (AttributeError, IndexError) as error:
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-
-        self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-        self.FTIRplot.set_ylim([0, self.transcut])
-        self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-        self.FTIRplot.set_ylabel('Transmission (%)')
-        self.FTIRplot.grid(True)
-        self.canvas.show()
 
     def onpick(self, event):
 
@@ -2516,13 +2351,31 @@ class FTIR_fittingtool_GUI(Frame):
         self.energy1.config(text='{0:.4f}'.format(self.energy))
         self.composition1.config(text='{0:.4f}'.format(self.composition))
 
-        fitobject = FIT_FTIR(float(self.entry_24.get()), float(self.entry_29.get()), self.wavenumbers,
-                             self.transmissions,
-                             float(self.entry_25.get()), float(self.entry_26.get()), float(self.entry_27.get()),
-                             float(self.entry_28.get()), float(self.entry_290.get()), float(self.entry_291.get()),
-                             float(self.entry_292.get()), float(self.entry_293.get()), float(self.entry_294.get()),
-                             float(self.entry_295.get()), float(self.entry_296.get()), float(self.entry_21.get()),
-                             self.subtype, 0, self.listbox, self.progress_var, self.wn_beingcalculated)
+        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
+
+        for i in range(1, self.layernumber + 1):
+            self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
+            self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
+            self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
+            self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
+
+        if len(self.layertype_list) == 0:
+            return
+
+        checktotal = 0
+        for check in self.checklayer_list:
+            checktotal += check
+        if checktotal == 0:
+            return
+        elif checktotal > 1:
+            return
+
+        fitobject = FIT_FTIR(self.Temp, self.wavenumbers, self.transmissions, self.entry_d_0.get(), self.layertype_list,
+                             self.entry_x_list,
+                             self.entry_d_list, self.checklayer_list, float(self.entry_21.get()),
+                             float(self.entry_22.get()),
+                             float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 0,
+                             self.listbox, self.progress_var, self.wn_beingcalculated)
         try:
             self.addlog('Absorption Coefficient: {}cm-1'.format(fitobject.cal_absorption_single(self.xclick)))
         except IndexError:
@@ -2532,66 +2385,14 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Clear everything. """
 
-        if self.wavenumber != 0 or self.filepath.cget('text') != '':
-            self.FTIRplot.clear()
-            self.absorptionplot.clear()
-            self.lowercut = 400
-            self.highercut = 6000
-            self.transcut = 70
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([0, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-            self.FTIRplot.set_ylabel('Transmission (%)')
-            self.FTIRplot.grid(True)
-            self.dot = self.FTIRplot.plot(0, 0, marker='x', color='w')
-            self.vline = self.FTIRplot.axvline(x=400, visible=True, color='k', linewidth=0.7)
-            self.hline = self.FTIRplot.axhline(y=0, visible=True, color='k', linewidth=0.7)
-            self.canvas.show()
-            self.filepath.config(text='')
-            self.filename = ''
-
-            self.trans = 0
-            self.wavenumber = 0
-            self.wavelength = 0
-            self.energy = 0
-            self.composition = 0
-            self.wavenumber1.config(text='{}'.format(self.wavenumber))
-            self.wavelength1.config(text='{}'.format(self.wavelength))
-            self.energy1.config(text='{}'.format(self.energy))
-            self.composition1.config(text='{}'.format(self.composition))
-
-            self.entry_21.delete(0, END)
-            self.entry_22.delete(0, END)
-            self.entry_23.delete(0, END)
-            self.entry_24.delete(0, END)
-            self.entry_25.delete(0, END)
-            self.entry_26.delete(0, END)
-            self.entry_27.delete(0, END)
-            self.entry_28.delete(0, END)
-            self.entry_29.delete(0, END)
-            self.entry_290.delete(0, END)
-            self.entry_291.delete(0, END)
-            self.entry_31.delete(0, END)
-            self.entry_32.delete(0, END)
-            self.entry_33.delete(0, END)
-            self.entry_21.insert(0, '0.00')
-            self.entry_22.insert(0, '500')
-            self.entry_23.insert(0, '0.00')
-            self.entry_24.insert(0, '0.00')
-            self.entry_25.insert(0, '0.00')
-            self.entry_26.insert(0, '0.00')
-            self.entry_27.insert(0, '0.00')
-            self.entry_28.insert(0, '0.00')
-            self.entry_29.insert(0, '0.00')
-            self.entry_290.insert(0, '10.00')
-            self.entry_291.insert(0, '1.00')
-            self.entry_31.insert(0, 400)
-            self.entry_32.insert(0, 6000)
-            self.entry_33.insert(0, 70)
-
-            self.numberofdata = 0
-            self.numberofdata2 = 0
+        clearornot = messagebox.askquestion("CAUTION!", "Clear everything (including all layer structures, "
+                                                        "data, settings and graphs)?", icon='warning')
+        if clearornot == 'yes':
+            self.pack_forget()
+            self.__init__(self.root, self.masterroot, self.listbox, self.statusbar, self.status1, self.status2)
             self.addlog('*' * 60)
+        else:
+            pass
 
     def addlog(self, string):
         self.listbox.insert(END, string)
