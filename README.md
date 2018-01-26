@@ -1,6 +1,10 @@
 # FTIR_fittingtool_v2.50
 The second generation of FTIR data fitting tool. 
 
+The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
+The influence on the EM wave by each layer is represented using an optical transfer matrix (characteristic matrix).  
+For example: H.A. Macleod, Thin-Film Optical Filters(1969), chapter2. 
+
 System requirement: 
 
 Mac OS/ Windows / Linux (Not tested)
@@ -17,7 +21,10 @@ Download the whole package to local, and then run "FTIR_fittingtool_2_class.py".
 
 For any questions, please contact pman3@uic.edu.
 
-© 1, 2018 Peihong Man.
+© 1, 2018 Peihong Man. 
+
+Special Thanks: Dr. Yong Chang. 
+
 
 Update log: 
 
@@ -50,4 +57,5 @@ Added material data for ZnSe, BaF2, Ge and ZnS for FPI project.
 Added settings function.
 
 Added saveresult function.
+
 
