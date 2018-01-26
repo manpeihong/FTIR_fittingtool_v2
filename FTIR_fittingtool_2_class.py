@@ -1,6 +1,4 @@
 import os
-# import time
-import math
 from tkinter import *
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Progressbar
@@ -13,18 +11,19 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.figure import Figure
 import numpy as np
-from scipy.optimize import curve_fit
 import threading
 import queue
 import cross_platform_config
 from sys import platform as _platform
 
 __version__ = '2.50'
+__emailaddress__ = "pman3@uic.edu"
 
 
 class FIT_FTIR:
     def __init__(self, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
-                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var, wn_beingcalculated):
+                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox,
+                 progress_var, wn_beingcalculated):
         self.temp = temp
         self.wns = wavenumbers
         self.trans = transmissions
@@ -71,6 +70,9 @@ class FIT_FTIR:
             pass
 
     def load_n_file(self):
+
+        """Load all material refractive index data."""
+
         self.wl_n_ZnSe = []
         self.n_ZnSe = []
         self.wl_k_ZnSe = []
@@ -176,6 +178,9 @@ class FIT_FTIR:
         os.chdir(self.osdir)
 
     def adjust_d_on_temp(self):
+
+        """Layer Thicknesses change with temperature. This function modify thickness based on T. """
+
         for i in range(0, len(self.layertype_list)):
             if self.layertype_list[i] == "ZnSe":
                 self.entry_d_list[i] = self.entry_d_list[i] * (1 + 7.6E-6 * (self.temp - 300))
@@ -189,6 +194,9 @@ class FIT_FTIR:
                 self.entry_d_list[i] = self.entry_d_list[i] * (1 + 2.52E-6 * (self.temp - 300))
 
     def show_fringes(self):
+
+        """Calculate fringes knowing the range of wavenumbers. """
+
         self.peakvalues = []
         self.reflections = []
         self.absorptions = []
@@ -200,6 +208,9 @@ class FIT_FTIR:
             self.absorptions.append(self.cal_fringes_single(self.lamda)[2])
 
     def cal_fringes_single(self, lamda):
+
+        """Calculate the transmission/reflection/absorption at a certain lamda. """
+
         self.n_list = []
         self.k_list = []
         self.etas_list = []
@@ -302,6 +313,9 @@ class FIT_FTIR:
         return self.allresult
 
     def cal_initialpara(self, x):
+
+        """Initilize all parameters based on composition x."""
+
         self.A1 = 13.173 - 9.852 * x + 2.909 * x * x + 0.0001 * (300 - self.temp)
         self.B1 = 0.83 - 0.246 * x - 0.0961 * x * x + 8 * 0.00001 * (300 - self.temp)
         self.C1 = 6.706 - 14.437 * x + 8.531 * x * x + 7 * 0.00001 * (300 - self.temp)
@@ -312,6 +326,9 @@ class FIT_FTIR:
         self.alpha0 = np.exp(-18.88 + 3.61 * x)
 
     def cal_n(self, lamda, material):
+
+        """Calculate n based on the type of material at a certain lamda."""
+
         if material == "CdTe" or material == "MCT" or material == "SL":
             if lamda < 1.4 * self.C1:
                 lamda = 1.4 * self.C1
@@ -368,6 +385,9 @@ class FIT_FTIR:
             return n
 
     def cal_k(self, lamda, material):
+
+        """Calculate k based on the type of material at a certain lamda."""
+
         k = 0
         if material == "CdTe" or material == "MCT" or material == "SL":
             return 0
@@ -412,6 +432,9 @@ class FIT_FTIR:
             return 0
 
     def cal_absorption(self):
+
+        """Calculate the absorption coefficient curve."""
+
         basek = 0
         numbercount = 0
         self.eta0s = np.cos(self.angle)
@@ -551,6 +574,9 @@ class FIT_FTIR:
         return self.absorptions
 
     def cal_absorption_single(self, wn):
+
+        """Calculate the absorption coefficient at a certain wavenumber."""
+
         basek = 0
         i = 0
 
@@ -772,7 +798,8 @@ class cal_MCT_a:
 
 class ThreadedTask_absorption(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
-                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var, wn_beingcalculated):
+                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
+                 wn_beingcalculated):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -800,8 +827,8 @@ class ThreadedTask_absorption(threading.Thread):
 
 
 class ThreadedTask_fringes(threading.Thread):
-    def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut, trans_cut,
-                 subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
+    def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut,
+                 trans_cut, subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
                  subtype, fittype, listbox, progress_var, wn_beingcalculated):
         threading.Thread.__init__(self)
         self.queue = queue_1
@@ -847,9 +874,10 @@ class ThreadedTask_fringes(threading.Thread):
                                     + float(self.entry_d_list_initial[i]) * (1 - float(self.entry_x_list[i])) * (1 + 0.01 * HgTe_offset)
                             self.entry_d_list[i] = new_d
 
-                fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list, self.entry_x_list,
-                                     self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle,
-                                     CdTe_offset, HgTe_offset, self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated)
+                fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list,
+                                     self.entry_x_list, self.entry_d_list, self.checklayer_list, self.scalefactor,
+                                     self.angle, CdTe_offset, HgTe_offset, self.subtype, 2, self.listbox,
+                                     self.progress_var, self.wn_beingcalculated)
                 self.peakvalues_fit = fitobject.returnpeakvalues()
 
                 self.MSE = 0
@@ -919,11 +947,13 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.displayreflection, self.displayabsorption = 0, 0
 
+        self.needmorehelp = 0
+
         self.COLUMN0_WIDTH = 4
         self.COLUMN1_WIDTH = 3
         self.COLUMN2_WIDTH = 8
 
-        self.frame0 = Frame(self, width=1000, height=20, bg='#262626', bd=1)
+        self.frame0 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH, height=20, bg='#262626', bd=1)
         self.frame0.pack(side=TOP, fill=X, expand=True)
         self.frame0.pack_propagate(0)
 
@@ -1150,17 +1180,19 @@ class FTIR_fittingtool_GUI(Frame):
             else:
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '0.0')
 
-            checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b', highlightthickness=hld, borderwidth=0)
+            checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)),
+                                    bg='#2b2b2b', highlightthickness=hld, borderwidth=0)
             checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
             checkbox1.select()
 
             if self.layernumber < 22:
                 self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
 
-        self.buttonaddlayer = Button(self.frame3, text="Add layer on top", command=add_layer_on_top, highlightbackground='#2b2b2b', width=12)
+        self.buttonaddlayer = Button(self.frame3, text="Add layer on top", command=add_layer_on_top,
+                                     highlightbackground='#2b2b2b', width=12)
         self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
 
-        self.frame4 = Frame(self, width=850, bg='#2b2b2b')
+        self.frame4 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame4.pack(side=TOP, fill=X, expand=True)
         self.frame4.pack_propagate(0)
 
@@ -1185,7 +1217,7 @@ class FTIR_fittingtool_GUI(Frame):
                                   anchor=W)
         self.composition1.grid(row=0, column=7, columnspan=1, sticky=E)
 
-        self.frame2 = Frame(self, width=850, bg='#2b2b2b')
+        self.frame2 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame2.pack(side=BOTTOM, fill=X, expand=True)
         self.frame2.pack_propagate(0)
 
@@ -1303,11 +1335,17 @@ class FTIR_fittingtool_GUI(Frame):
                            command=self.setoffsets, highlightbackground='#2b2b2b', anchor=W, width=3)
         button_21.grid(row=1, column=11, sticky=W)
 
-        self.frame1 = Frame(self, width=850, bg='#2b2b2b')
+        self.frame1 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame1.pack(side=TOP, fill=BOTH, expand=True)
         # self.frame1.pack_propagate(0)
 
-        self.FTIRfigure = Figure(figsize=(7.8, 4), dpi=100)
+        if _platform == "darwin":
+            self.FTIRfigure = Figure(figsize=(7.8, 4), dpi=100)
+            self.frame1.config(height=400)
+        elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
+            self.frame1.config(height=600)
+            self.FTIRfigure = Figure(figsize=(7.8, 5), dpi=100)
+
         self.FTIRfigure.subplots_adjust(left=0.08, bottom=0.12, right=0.92, top=0.95)
         self.FTIRplot = self.FTIRfigure.add_subplot(111)
 
@@ -1355,14 +1393,14 @@ class FTIR_fittingtool_GUI(Frame):
         def help_event(event):
             self.help()
 
-        if _platform == "darwin" or _platform == "linux" or _platform == "linux2":
+        if _platform == "darwin":
             masterroot.bind('<Command-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
             masterroot.bind('<Command-f>', fit_fringes_event)
             masterroot.bind('<Command-o>', openfromfile_event)
             masterroot.bind('<Command-s>', show_fringes_event)
             masterroot.bind('<Command-a>', cal_absorption_event)
             masterroot.bind('<Command-p>', help_event)
-        elif _platform == "win32" or _platform == "win64":
+        elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
             masterroot.bind('<Control-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
             masterroot.bind('<Control-f>', fit_fringes_event)
             masterroot.bind('<Control-o>', openfromfile_event)
@@ -1373,19 +1411,99 @@ class FTIR_fittingtool_GUI(Frame):
         self.pack()
 
     def help(self):
-        self.addlog("FTIR fitting tool v. {}. With customization of layer structures. ".format(__version__))
-        self.addlog('Open a FTIR transmission .csv file, then customize your layer structure on the right. '
-                    'You can load or save a structure from file.')
-        self.addlog('The "cut" and "zoom" function on the bottom can set the range of interest.')
-        self.addlog('"scale factor" and "angle" settings are also on the bottom. Click "Show fringes" to see the result. ')
-        self.addlog("The CdTe and HgTe offset function is used to fit the fringes. This is a very import idea in version 2. ")
-        self.addlog("It is based on the fact that cell flux remains relatively stable during the growth. "
-                    "So the layer thicknesses are not independent. They are related by the flux of CdTe and Te cells. ")
-        self.addlog('Click "Set" to apply the offsets to the layer thicknesses. Note! Only the layers with check marks will be changed accordingly. ')
-        self.addlog('Use"Fit fringes" to find the best CdTe/HgTe offset. Currently this function is running slow.')
-        self.addlog('The fit range for CdTe offset is +-10, and for HgTe is +-5. You can change them inside the code. '
-                    'The accuracy of the fitting is questionable due to fundamental reasons. ')
-        self.listbox.insert(END, '*' * 60)
+        if self.needmorehelp == 0:
+            self.addlog("FTIR fitting tool v{}. With customization of layer structures. ".format(__version__))
+            self.addlog('Open a FTIR transmission .csv file, then customize your layer structure on the right. '
+                        'You can load or save a structure from file.')
+            self.addlog('The "cut" and "zoom" function on the bottom can set the range of interest.')
+            self.addlog('"scale factor" and "angle" settings are also on the bottom. '
+                        'Click "Show fringes" to see the result. ')
+            self.addlog('Click "Set" to apply CdTe/HgTe offsets to the layer thicknesses. '
+                        'Note! Only the layers with check marks will be changed accordingly. ')
+            self.addlog('Use "Fit fringes" to find the best CdTe/HgTe offset. Currently this function is running slow.')
+
+            if _platform == "darwin":
+                self.addlog('For more help and information, press ⌘+P again.')
+            elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
+                self.addlog('For more help and information, press Ctrl+P again.')
+
+            self.listbox.insert(END, '*' * 60)
+            self.needmorehelp = 1
+
+        elif self.needmorehelp == 1:
+            helpwindow = Toplevel()
+            w2 = 650  # width for the window
+            h2 = 650  # height for the window
+            ws = self.masterroot.winfo_screenwidth()  # width of the screen
+            hs = self.masterroot.winfo_screenheight()  # height of the screen
+            # calculate x and y coordinates for the Tk root window
+            x2 = (ws / 2) - (w2 / 2)
+            y2 = (hs / 4) - (h2 / 4)
+            # set the dimensions of the screen
+            # and where it is placed
+            helpwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
+            helpwindow.wm_title("Help")
+            helpwindow.configure(background='#2b2b2b')
+
+            scrollbarhelp = Scrollbar(helpwindow)
+            scrollbarhelp.pack(side=RIGHT, fill=Y)
+
+            helplines = Text(helpwindow, bd=0, highlightthickness=0,
+                             bg='#2b2b2b', fg='#a9b7c6', width=550, height=650, yscrollcommand=scrollbarhelp.set)
+            helplines.pack(side=TOP)
+
+            scrollbarhelp.config(command=helplines.yview)
+
+            helplines.insert(END, "FTIR fitting tool v{}. With customization of layer structures. ".format(__version__))
+            helplines.insert(END, '\n\nFor any questions or sugguestions please contact {}.'.format(__emailaddress__))
+
+            helplines.insert(END, '\n\nBasic concept:')
+            helplines.insert(END, '\nThe CdTe and HgTe offset function is used to fit the fringes. '
+                                  'This is a very import idea in version 2. ')
+            helplines.insert(END, '\nIt is based on the fact that all flux remain relatively stable during the growth.')
+            helplines.insert(END, '\nSo the layer thicknesses are not independent. '
+                                  'They are related by the flux of CdTe and Te cells. ')
+            helplines.insert(END, '\nThe fringes fitting function is currently running slow. '
+                                  'However, it is not recommended in the first place. ')
+            helplines.insert(END, '\nThere are so many fitting parameters in this mulitplayer model, '
+                                  'so manually fitting the fringes is highly recommended.')
+            helplines.insert(END, '\nThe fitting range for CdTe offset is +-10, and for HgTe is +-5. '
+                                  'You can change them inside the code.')
+            helplines.insert(END, '\nThe accuracy of the fitting is questionable due to fundamental reasons.')
+            helplines.insert(END, '\nCurrently the program can only fit the fringes for MCT and SL materials. '
+                                  'Fitting the cutoff curve can be challenging and inaccurate. ')
+
+            helplines.insert(END, '\n\nHot keys:')
+            if _platform == "darwin":
+                helplines.insert(END, '\n   ⌘+O: Open .csv data file.')
+                helplines.insert(END, '\n   ⌘+L: Load existing layer Structures.')
+                helplines.insert(END, '\n   ⌘+A: Calculate absorption coefficient.')
+                helplines.insert(END, '\n   ⌘+F: Fit transmission fringes.')
+                helplines.insert(END, '\n   ⌘+S: show interference fringes using the input parameters.')
+            elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
+                helplines.insert(END, '\n   Ctrl+O: Open .csv data file.')
+                helplines.insert(END, '\n   Ctrl+L: Load existing layer Structures.')
+                helplines.insert(END, '\n   Ctrl+A: Calculate absorption coefficient.')
+                helplines.insert(END, '\n   Ctrl+F: Fit transmission fringes.')
+                helplines.insert(END, '\n   Ctrl+S: show interference fringes using the input parameters.')
+
+            helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.50:')
+            helplines.insert(END, '\n   Temperature is introduced into the fitting tool. '
+                                  'Added temperature in "settings".')
+            helplines.insert(END, '\n   Added material data fro Si3N4, air. ')
+            helplines.insert(END, '\n   Added one more substrate option: Air.')
+            helplines.insert(END, '\n   Extended the total number of layers can be added from 16 to 22. ')
+            helplines.insert(END, '\n   Modified "Clear" function. ')
+            helplines.insert(END, '\n   Modified "Calculate absorption" function. ')
+            helplines.insert(END, '\n   Modified "Calculate MCT absorption" function.')
+            helplines.insert(END, '\n   Added function to prevent two structures stack together. ')
+            helplines.insert(END, '\n   Toolbar buttons are optimized to fit in more function buttons. ')
+            helplines.insert(END, '\n   Now the newest added layer will shw on top instead of bottom.')
+            helplines.insert(END, '\nv2.40:')
+            helplines.insert(END, '\n   Added material data for ZnSe, BaF2, Ge and ZnS for FPI project.')
+            helplines.insert(END, '\n   Added settings function.')
+            helplines.insert(END, '\n   Added saveresult function.')
 
     def setoffsets(self):
 
@@ -1404,9 +1522,12 @@ class FTIR_fittingtool_GUI(Frame):
                     new_d = self.entry_d_list_initial[i-1] * (1 + 0.01 * float(self.entry_23.get()))
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
-                elif getattr(self, "layertypevar{}".format(i)).get() == "MCT" or getattr(self, "layertypevar{}".format(i)).get() == "SL":
-                    new_d = self.entry_d_list_initial[i-1] * float(getattr(self, "entry_x_{}".format(i)).get()) * (1 + 0.01 * float(self.entry_23.get())) \
-                            + self.entry_d_list_initial[i-1] * (1 - float(getattr(self, "entry_x_{}".format(i)).get())) * (1 + 0.01 * float(self.entry_24.get()))
+                elif getattr(self, "layertypevar{}".format(i)).get() == "MCT" \
+                        or getattr(self, "layertypevar{}".format(i)).get() == "SL":
+                    new_d = self.entry_d_list_initial[i-1] * float(getattr(self, "entry_x_{}".format(i)).get()) \
+                            * (1 + 0.01 * float(self.entry_23.get())) \
+                            + self.entry_d_list_initial[i-1] * (1 - float(getattr(self, "entry_x_{}".format(i)).get())) \
+                            * (1 + 0.01 * float(self.entry_24.get()))
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
 
@@ -1434,7 +1555,8 @@ class FTIR_fittingtool_GUI(Frame):
         Label(settingwindow, text="----------------General---------------",
               bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
 
-        Label(settingwindow, text="Temperature (K):", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=1, column=0, sticky=W)
+        Label(settingwindow, text="Temperature (K):", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+            .grid(row=1, column=0, sticky=W)
         entry_s1 = Entry(settingwindow, highlightbackground='#2b2b2b', width=10)
         entry_s1.grid(row=1, column=1, sticky=W)
         entry_s1.insert(0, self.Temp)
@@ -1443,13 +1565,15 @@ class FTIR_fittingtool_GUI(Frame):
               bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=2, column=0, columnspan=2, sticky=W)
 
         self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
-        checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp, bg='#2b2b2b', fg="#a9b7c6")
+        checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp,
+                                bg='#2b2b2b', fg="#a9b7c6")
         checkboxr.grid(row=3, column=0, columnspan=2, sticky=W)
 
         if self.displayreflection == 1:
             checkboxr.select()
 
-        checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp, bg='#2b2b2b', fg="#a9b7c6")
+        checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp,
+                                bg='#2b2b2b', fg="#a9b7c6")
         checkboxa.grid(row=4, column=0, columnspan=2, sticky=W)
 
         if self.displayabsorption== 1:
@@ -1524,7 +1648,8 @@ class FTIR_fittingtool_GUI(Frame):
             file.close()
 
             self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers, self.absorptions, self.colororders2[self.numberofdata2], label=self.filename)
+            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers, self.absorptions,
+                                                               self.colororders2[self.numberofdata2], label=self.filename)
             self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
             self.absorptionplot.set_ylim([0, 10000])
@@ -1624,7 +1749,8 @@ class FTIR_fittingtool_GUI(Frame):
         """Load existing heterojunction structures (.csv files.)"""
 
         if self.layernumber != 0:
-            loadornot = messagebox.askquestion(" ", "A structure can only be loaded on bare subtrate. Clear everything to proceed?", icon='warning')
+            loadornot = messagebox.askquestion(" ", "A structure can only be loaded on bare subtrate. "
+                                                    "Clear everything to proceed?", icon='warning')
             if loadornot == 'yes':
                 self.clearalldata()
             else:
@@ -1638,7 +1764,8 @@ class FTIR_fittingtool_GUI(Frame):
                 if item[-4:None] == ".CSV" or item[-4:None] == ".csv":
                     filelist.append(item[0:-4])
         except FileNotFoundError:
-            findornot = messagebox.askquestion(" ", "Structure folder not found. Do you want to relocate the folder manually?", icon='warning')
+            findornot = messagebox.askquestion(" ", "Structure folder not found. Do you want to relocate "
+                                                    "the folder manually?", icon='warning')
             if findornot == 'yes':
                 self.structure_dir = filedialog.askdirectory()
                 for item in os.listdir(self.structure_dir):
@@ -1664,13 +1791,14 @@ class FTIR_fittingtool_GUI(Frame):
         # set the dimensions of the screen
         # and where it is placed
         openfromfilewindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
-        openfromfilewindow.wm_title("Open from file")
+        openfromfilewindow.wm_title("Load layer Structure")
         # openfromfilewindow.wm_overrideredirect(True)
         openfromfilewindow.configure(background='#2b2b2b', takefocus=True)
         openfromfilewindow.attributes('-topmost', 'true')
         openfromfilewindow.grab_set()
 
-        Label(openfromfilewindow, text="Existing Structure:", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=1, sticky=W)
+        Label(openfromfilewindow, text="Existing Structure:", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+            .grid(row=0, column=0, columnspan=1, sticky=W)
 
         Structurenameget = StringVar(openfromfilewindow)
         Structurenameget.set("nBn_with_SL_barrier")  # initial value
@@ -1681,7 +1809,7 @@ class FTIR_fittingtool_GUI(Frame):
         # '*'  to receive each list item as a separate parameter.
         Structurenamegetoption.config(bg='#2b2b2b')
         Structurenamegetoption.config(width=24)
-        Structurenamegetoption["menu"].config(bg='#2b2b2b')
+        #Structurenamegetoption["menu"].config(bg='#2b2b2b')
         Structurenamegetoption.grid(row=1, column=0, columnspan=2)
         # Samplenamegetoption.grab_set()
         Structurenamegetoption.focus_set()
@@ -1714,7 +1842,8 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.buttonaddlayer.grid_forget()
                 getattr(self, "layertypevar{}".format(self.layernumber)).set(layer)
-                layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
+                layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)),
+                                              *self.available_materials)
                 layertypeoption1.config(bg="#2b2b2b", width=self.COLUMN0_WIDTH, anchor=E)
                 layertypeoption1.grid(row=27 -self.layernumber, column=0, sticky=W+E)
 
@@ -1724,7 +1853,8 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2)
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, d)
 
-                checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b')
+                checkbox1 = Checkbutton(self.frame3, text="",
+                                        variable=getattr(self, "checklayer{}".format(self.layernumber)), bg='#2b2b2b')
                 checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
                 if check_or_not == 1:
                     checkbox1.select()
@@ -1786,7 +1916,8 @@ class FTIR_fittingtool_GUI(Frame):
             self.checklayer_list.append(float(getattr(self, "checklayer{}".format(i)).get()))
 
         for i in range(0, len(self.layertype_list)):
-            f.write("{},{},{},{}\n".format(self.layertype_list[i], self.entry_x_list[i], self.entry_d_list[i], int(self.checklayer_list[i])))
+            f.write("{},{},{},{}\n".format(self.layertype_list[i], self.entry_x_list[i], self.entry_d_list[i],
+                                           int(self.checklayer_list[i])))
 
         f.close()
 
@@ -1818,10 +1949,10 @@ class FTIR_fittingtool_GUI(Frame):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
                 self.trans_cut.append(float(self.transmissions[i]))
 
-        fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
-                             self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
-                             float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
-                             self.listbox, self.progress_var, self.wn_beingcalculated)
+        fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list,
+                             self.entry_x_list, self.entry_d_list, self.checklayer_list, float(self.entry_21.get()),
+                             float(self.entry_22.get()), float(self.entry_23.get()), float(self.entry_24.get()),
+                             self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated)
         self.peakvalues_fit = fitobject.returnpeakvalues()
         self.reflections_fit = fitobject.returnreflections()
         self.absorptions_fit = fitobject.returnabsorptions()
@@ -1996,11 +2127,11 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.queue = queue.Queue()
 
-        ThreadedTask_fringes(self.queue, self.Temp, float(self.entry_23.get()), float(self.entry_24.get()), self.entry_d_list_initial,
-                      self.layernumber, self.wavenumbers_cut, self.trans_cut, float(self.entry_d_0.get()),
-                      self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
-                      float(self.entry_21.get()), float(self.entry_22.get()),
-                      self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated).start()
+        ThreadedTask_fringes(self.queue, self.Temp, float(self.entry_23.get()), float(self.entry_24.get()),
+                             self.entry_d_list_initial, self.layernumber, self.wavenumbers_cut, self.trans_cut,
+                             float(self.entry_d_0.get()), self.layertype_list, self.entry_x_list, self.entry_d_list,
+                             self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
+                             self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated).start()
         self.master.after(100, self.process_queue_fringes)
 
     def process_queue_fringes(self):
@@ -2025,8 +2156,9 @@ class FTIR_fittingtool_GUI(Frame):
                 self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
                 self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
 
-            fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list, self.entry_x_list,
-                                 self.entry_d_list, self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
+            fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(),
+                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
+                                 float(self.entry_21.get()), float(self.entry_22.get()),
                                  float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                                  self.listbox, self.progress_var, self.wn_beingcalculated)
             self.peakvalues_fit = fitobject.returnpeakvalues()
@@ -2139,7 +2271,8 @@ class FTIR_fittingtool_GUI(Frame):
                 pass
 
             self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers_cut1, self.absorptions, self.colororders2[self.numberofdata2], label='Calculated Absorption')
+            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers_cut1, self.absorptions,
+                                                               self.colororders2[self.numberofdata2], label='Calculated Absorption')
             self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
             self.absorptionplot.set_ylim([0, 10000])
@@ -2206,7 +2339,8 @@ class FTIR_fittingtool_GUI(Frame):
         call_MCT_choosewindow.attributes('-topmost', 'true')
         call_MCT_choosewindow.grab_set()
 
-        Label(call_MCT_choosewindow, text="Use fitting method by:", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=1, sticky=W)
+        Label(call_MCT_choosewindow, text="Use fitting method by:", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+            .grid(row=0, column=0, columnspan=1, sticky=W)
 
         methodnameget = StringVar(call_MCT_choosewindow)
         methodnameget.set("Yong")  # initial value
@@ -2441,8 +2575,9 @@ def main():
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
 
-    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE)
-    if _platform == "win32" or _platform == "win64":
+    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg='#a9b7c6', bg='#2b2b2b',
+                    bd=1, relief=RIDGE)
+    if _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
         status1.config(text='Welcome to FTIR Fitting Tool. Press Ctrl + P for help.')
     status1.pack(side=LEFT, fill=X, expand=True)
     status1.pack_propagate(0)
