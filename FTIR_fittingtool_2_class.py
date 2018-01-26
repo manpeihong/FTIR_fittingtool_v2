@@ -1008,7 +1008,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.frame3.pack_propagate(1)
 
         LABEL_WIDTH = 13
-        hld = 1
+        hld = 0
 
         # seperateline = Label(self.frame3, text='-'*40, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         # seperateline.grid(row=9, column=0, columnspan=4)
