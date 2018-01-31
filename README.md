@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.50
+# FTIR_fittingtool_v2.51
 The second generation of FTIR data fitting tool. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
@@ -27,6 +27,16 @@ Special Thanks: Dr. Yong Chang.
 
 
 Update log: 
+
+v2.51:
+
+Added T-dependent refractive index for ZnSe, BaF2 and Ge.
+
+Now one can calculate absorption coefficient for multiple absorption layers. 
+
+Optimized UI for Windows.
+
+Fixed a bug where the default preload structure cannot be loaded.
 
 v2.50:
 
