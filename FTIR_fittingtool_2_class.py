@@ -1599,7 +1599,10 @@ class FTIR_fittingtool_GUI(Frame):
         """Optinal settings for customized result."""
 
         settingwindow = Toplevel()
-        w2 = 250  # width for the window
+        if _platform == "darwin":
+            w2 = 250  # width for the window
+        elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
+            w2 = 200
         h2 = 140  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
