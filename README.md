@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.52
+# FTIR_fittingtool_v2.53
 The second generation of FTIR data fitting tool. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
@@ -27,6 +27,14 @@ Special Thanks: Dr. Yong Chang.
 
 
 Update log: 
+
+v2.53:
+
+Added live graph for "Show Trans" function. 
+
+Added live graph for "Fit Trans" function. 
+
+Added live graph for "Cal a" function. 
 
 v2.52:
 
