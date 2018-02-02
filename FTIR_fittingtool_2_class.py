@@ -16,7 +16,7 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 
-__version__ = '2.51'
+__version__ = '2.52'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -63,6 +63,8 @@ class FIT_FTIR:
         self.load_n_file()
 
         self.adjust_d_on_temp()
+
+        self.cal_crossover_a()
 
         if self.fittingtype == 2:
             self.show_fringes()
@@ -193,6 +195,246 @@ class FIT_FTIR:
             elif self.layertype_list[i] == "Si3N4":
                 self.entry_d_list[i] = self.entry_d_list[i] * (1 + 2.52E-6 * (self.temp - 300))
 
+    def cal_crossover_a(self):
+
+        """Used to find the crossover point of absorption curve (Crossover of intrinsic and Urbach tail).
+        Since self.T0 and self.beta are adjusted based on real data, so it's tricky to find the crossover point. """
+
+        self.crossover_xs = []
+        self.crossover_as = []
+
+        for x in np.arange(0, 1, 0.001):
+            self.T0 = 61.9  # Initial parameter is 81.9. Adjusted.
+            self.W = self.T0 + self.temp
+            self.E0 = -0.3424 + 1.838 * x + 0.148 * x * x * x * x
+            self.sigma = 3.267E4 * (1 + x)
+            self.alpha0 = np.exp(53.61 * x - 18.88)
+            self.beta = 3.109E5 * np.sqrt((1 + x) / self.W)  # Initial parameter is 2.109E5. Adjusted.
+            self.Eg = self.E0 + (6.29E-2 + 7.68E-4 * self.temp) * ((1 - 2.14 * x) / (1 + x))
+
+            fitsuccess = 0
+
+            for E in np.arange(0.05, 0.8, 0.001):
+                ab1 = self.alpha0 * np.exp(self.sigma * (E - self.E0) / self.W)
+                if E >= self.Eg:
+                    ab2 = self.beta * np.sqrt(E - self.Eg)
+                else:
+                    ab2 = 0
+
+                if (ab1 - ab2) <= 10 and ab1 > 500:
+                    self.crossover_xs.append(x)
+                    self.crossover_as.append(ab1)
+                    fitsuccess = 1
+                    break
+
+            if fitsuccess == 0:
+                if x < 0.5:
+                    self.crossover_xs.append(x)
+                    self.crossover_as.append(1200)
+                else:
+                    self.crossover_xs.append(x)
+                    self.crossover_as.append(500)
+
+        # print(self.crossover_xs)
+        # print(self.crossover_as)
+
+    def cal_initialpara(self, x):
+
+        """Initilize all parameters based on composition x."""
+
+        # for n
+        self.A1 = 13.173 - 9.852 * x + 2.909 * x * x + 0.0001 * (300 - self.temp)
+        self.B1 = 0.83 - 0.246 * x - 0.0961 * x * x + 8 * 0.00001 * (300 - self.temp)
+        self.C1 = 6.706 - 14.437 * x + 8.531 * x * x + 7 * 0.00001 * (300 - self.temp)
+        self.D1 = 1.953 * 0.00001 - 0.00128 * x + 1.853 * 0.00001 * x * x
+
+        # for k
+        self.T0 = 61.9  # Initial parameter is 81.9. Adjusted.
+        self.W = self.T0 + self.temp
+        self.E0 = -0.3424 + 1.838 * x + 0.148 * x * x * x * x
+        self.sigma = 3.267E4 * (1 + x)
+        self.alpha0 = np.exp(53.61 * x - 18.88)
+        self.beta = 3.109E5 * np.sqrt((1 + x) / self.W)  # Initial parameter is 2.109E5. Adjusted.
+        self.Eg = self.E0 + (6.29E-2 + 7.68E-4 * self.temp) * ((1 - 2.14 * x) / (1 + x))
+
+        for i in range(0, len(self.crossover_xs) - 1):
+            if self.crossover_xs[i+1] > x >= self.crossover_xs[i]:
+                self.crossover_a = self.crossover_as[i]
+                break
+
+    def cal_n(self, lamda, material):
+
+        """Calculate n based on the type of material at a certain lamda."""
+
+        if material == "CdTe" or material == "MCT" or material == "SL":
+            if lamda < 1.4 * self.C1:
+                lamda = 1.4 * self.C1
+
+            n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
+            return n
+
+        elif material == "ZnSe":
+            for i in range(0, len(self.wl_n_ZnSe)):
+                if self.wl_n_ZnSe[i + 1] > lamda >= self.wl_n_ZnSe[i]:
+                    if self.temp >= 275:
+                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (self.temp - 300))
+                    else:
+                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (275 - 300))
+                        if self.temp >= 225:
+                            n = n * (1 + 5.99E-5 * (self.temp - 275))
+                        else:
+                            n = n * (1 + 5.99E-5 * (225 - 275))
+                            if self.temp >= 160:
+                                n = n * (1 + 5.72E-5 * (self.temp - 225))
+                            else:
+                                n = n * (1 + 5.72E-5 * (160 - 225))
+                                if self.temp >= 100:
+                                    n = n * (1 + 5.29E-5 * (self.temp - 160))
+                                else:
+                                    n = n * (1 + 5.29E-5 * (100 - 160))
+                                    n = n * (1 + 4.68E-5 * (self.temp - 160))
+                    return n
+
+        elif material == "BaF2":
+            for i in range(0, len(self.wl_n_BaF2)):
+                if self.wl_n_BaF2[i + 1] > lamda >= self.wl_n_BaF2[i]:
+                    if self.temp >= 275:
+                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (self.temp - 300))
+                    else:
+                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (275 - 300))
+                        if self.temp >= 225:
+                            n = n * (1 - 1.5E-5 * (self.temp - 275))
+                        else:
+                            n = n * (1 - 1.5E-5 * (225 - 275))
+                            if self.temp >= 160:
+                                n = n * (1 - 1.37E-5 * (self.temp - 225))
+                            else:
+                                n = n * (1 - 1.37E-5 * (160 - 225))
+                                if self.temp >= 100:
+                                    n = n * (1 - 9.95E-6 * (self.temp - 160))
+                                else:
+                                    n = n * (1 - 9.95E-6 * (100 - 160))
+                                    n = n * (1 - 8.91E-6 * (self.temp - 160))
+
+                    return n
+
+        elif material == "Ge":
+            try:
+                for i in range(0, len(self.wl_n_Ge)):
+                    if self.wl_n_Ge[i + 1] > lamda >= self.wl_n_Ge[i]:
+                        if self.temp >= 275:
+                            n = self.n_Ge[i] * (1 + 4.25E-5 * (self.temp - 300))
+                        else:
+                            n = self.n_Ge[i] * (1 + 4.25E-5 * (275 - 300))
+                            if self.temp >= 225:
+                                n = n * (1 + 3.87E-5 * (self.temp - 275))
+                            else:
+                                n = n * (1 + 3.87E-5 * (225 - 275))
+                                if self.temp >= 160:
+                                    n = n * (1 + 3.45E-5 * (self.temp - 225))
+                                else:
+                                    n = n * (1 + 3.45E-5 * (160 - 225))
+                                    if self.temp >= 100:
+                                        n = n * (1 + 3.30E-5 * (self.temp - 160))
+                                    else:
+                                        n = n * (1 + 3.30E-5 * (100 - 160))
+                                        n = n * (1 + 2.21E-5 * (self.temp - 160))
+
+                        return n
+            except IndexError:
+                if lamda < self.wl_n_Ge[0]:
+                    return 4.1117 * (1 + 4.24E-4 * (self.temp - 300))
+                elif lamda > self.wl_n_Ge[-1]:
+                    return 3.9996 * (1 + 4.24E-4 * (self.temp - 300))
+
+        elif material == "ZnS":
+            for i in range(0, len(self.wl_n_ZnS)):
+                if self.wl_n_ZnS[i + 1] > lamda >= self.wl_n_ZnS[i]:
+                    n = self.n_ZnS[i] * (1 + 5.43E-5 * (self.temp - 300))
+                    return n
+
+        elif material == "Si3N4":
+            try:
+                for i in range(0, len(self.wl_n_Si3N4)):
+                    if self.wl_n_Si3N4[i + 1] > lamda >= self.wl_n_Si3N4[i]:
+                        n = self.n_Si3N4[i] * (1 + 2.5E-5 * (self.temp - 300))
+                        return n
+            except IndexError:
+                if lamda < self.wl_n_Si3N4[0]:
+                    return 2.46306 * (1 + 2.5E-5 * (self.temp - 300))
+                elif lamda > self.wl_n_Si3N4[-1]:
+                    return 3.68517 * (1 + 2.5E-5 * (self.temp - 300))
+
+        elif material == "Si":
+            n = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
+            return n
+
+        elif material == "Air":
+            n = 1
+            return n
+
+    def cal_k(self, lamda, material):
+
+        """Calculate k based on the type of material at a certain lamda."""
+
+        k = 0
+        if material == "CdTe":
+            return 0
+        elif material == "MCT" or material == "SL":
+            E = 4.13566743 * 3 / 10 / lamda
+            ab1 = self.alpha0 * np.exp(self.sigma * (E - self.E0) / self.W)
+            if E >= self.Eg:
+                ab2 = self.beta * np.sqrt(E - self.Eg)
+            else:
+                ab2 = 0
+
+            if ab1 < self.crossover_a and ab2 < self.crossover_a:
+                return ab1 / 4 / np.pi * lamda / 10000
+            else:
+                if ab2 != 0:
+                    return ab2 / 4 / np.pi * lamda / 10000
+                else:
+                    return ab1 / 4 / np.pi * lamda / 10000
+
+        elif material == "ZnSe":
+            for i in range(0, len(self.wl_k_ZnSe)):
+                if self.wl_k_ZnSe[i + 1] > lamda >= self.wl_k_ZnSe[i]:
+                    k = self.k_ZnSe[i]
+                    return k
+
+        elif material == "BaF2":
+            for i in range(0, len(self.wl_k_BaF2)):
+                if self.wl_k_BaF2[i + 1] > lamda >= self.wl_k_BaF2[i]:
+                    k = self.k_BaF2[i]
+                    return k
+
+        elif material == "Ge":
+            return 0
+
+        elif material == "ZnS":
+            for i in range(0, len(self.wl_k_ZnS)):
+                if self.wl_k_ZnS[i + 1] > lamda >= self.wl_k_ZnS[i]:
+                    k = self.k_ZnS[i]
+                    return k
+
+        elif material == "Si3N4":
+            try:
+                for i in range(0, len(self.wl_k_Si3N4)):
+                    if self.wl_k_Si3N4[i + 1] > lamda >= self.wl_k_Si3N4[i]:
+                        k = self.k_Si3N4[i]
+                        return k
+            except IndexError:
+                if lamda < self.wl_k_Si3N4[0]:
+                    return 0.00003
+                elif lamda > self.wl_k_Si3N4[-1]:
+                    return 0.92245
+
+        elif material == "Si":
+            return 0
+
+        elif material == "Air":
+            return 0
+
     def show_fringes(self):
 
         """Calculate fringes knowing the range of wavenumbers. """
@@ -311,177 +553,6 @@ class FIT_FTIR:
         self.allresult.append(float(absorption))
 
         return self.allresult
-
-    def cal_initialpara(self, x):
-
-        """Initilize all parameters based on composition x."""
-
-        self.A1 = 13.173 - 9.852 * x + 2.909 * x * x + 0.0001 * (300 - self.temp)
-        self.B1 = 0.83 - 0.246 * x - 0.0961 * x * x + 8 * 0.00001 * (300 - self.temp)
-        self.C1 = 6.706 - 14.437 * x + 8.531 * x * x + 7 * 0.00001 * (300 - self.temp)
-        self.D1 = 1.953 * 0.00001 - 0.00128 * x + 1.853 * 0.00001 * x * x
-        self.T0 = 81.9
-        self.E0 = -0.3424 + 1.838 * x
-        self.sigma = 3.267 * np.power(10, 4) * (1 + x)
-        self.alpha0 = np.exp(-18.88 + 3.61 * x)
-
-    def cal_n(self, lamda, material):
-
-        """Calculate n based on the type of material at a certain lamda."""
-
-        if material == "CdTe" or material == "MCT" or material == "SL":
-            if lamda < 1.4 * self.C1:
-                lamda = 1.4 * self.C1
-
-            n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
-            return n
-
-        elif material == "ZnSe":
-            for i in range(0, len(self.wl_n_ZnSe)):
-                if self.wl_n_ZnSe[i + 1] > lamda >= self.wl_n_ZnSe[i]:
-                    if self.temp >= 275:
-                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (self.temp - 300))
-                    else:
-                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (275 - 300))
-                        if self.temp >= 225:
-                            n = n * (1 + 5.99E-5 * (self.temp - 275))
-                        else:
-                            n = n * (1 + 5.99E-5 * (225 - 275))
-                            if self.temp >= 160:
-                                n = n * (1 + 5.72E-5 * (self.temp - 225))
-                            else:
-                                n = n * (1 + 5.72E-5 * (160 - 225))
-                                if self.temp >= 100:
-                                    n = n * (1 + 5.29E-5 * (self.temp - 160))
-                                else:
-                                    n = n * (1 + 5.29E-5 * (100 - 160))
-                                    n = n * (1 + 4.68E-5 * (self.temp - 160))
-                    return n
-
-        elif material == "BaF2":
-            for i in range(0, len(self.wl_n_BaF2)):
-                if self.wl_n_BaF2[i + 1] > lamda >= self.wl_n_BaF2[i]:
-                    if self.temp >= 275:
-                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (self.temp - 300))
-                    else:
-                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (275 - 300))
-                        if self.temp >= 225:
-                            n = n * (1 - 1.5E-5 * (self.temp - 275))
-                        else:
-                            n = n * (1 - 1.5E-5 * (225 - 275))
-                            if self.temp >= 160:
-                                n = n * (1 - 1.37E-5 * (self.temp - 225))
-                            else:
-                                n = n * (1 - 1.37E-5 * (160 - 225))
-                                if self.temp >= 100:
-                                    n = n * (1 - 9.95E-6 * (self.temp - 160))
-                                else:
-                                    n = n * (1 - 9.95E-6 * (100 - 160))
-                                    n = n * (1 - 8.91E-6 * (self.temp - 160))
-
-                    return n
-
-        elif material == "Ge":
-            try:
-                for i in range(0, len(self.wl_n_Ge)):
-                    if self.wl_n_Ge[i + 1] > lamda >= self.wl_n_Ge[i]:
-                        if self.temp >= 275:
-                            n = self.n_Ge[i] * (1 + 4.25E-5 * (self.temp - 300))
-                        else:
-                            n = self.n_Ge[i] * (1 + 4.25E-5 * (275 - 300))
-                            if self.temp >= 225:
-                                n = n * (1 + 3.87E-5 * (self.temp - 275))
-                            else:
-                                n = n * (1 + 3.87E-5 * (225 - 275))
-                                if self.temp >= 160:
-                                    n = n * (1 + 3.45E-5 * (self.temp - 225))
-                                else:
-                                    n = n * (1 + 3.45E-5 * (160 - 225))
-                                    if self.temp >= 100:
-                                        n = n * (1 + 3.30E-5 * (self.temp - 160))
-                                    else:
-                                        n = n * (1 + 3.30E-5 * (100 - 160))
-                                        n = n * (1 + 2.21E-5 * (self.temp - 160))
-
-                        return n
-            except IndexError:
-                if lamda < self.wl_n_Ge[0]:
-                    return 4.1117 * (1 + 4.24E-4 * (self.temp - 300))
-                elif lamda > self.wl_n_Ge[-1]:
-                    return 3.9996 * (1 + 4.24E-4 * (self.temp - 300))
-
-        elif material == "ZnS":
-            for i in range(0, len(self.wl_n_ZnS)):
-                if self.wl_n_ZnS[i + 1] > lamda >= self.wl_n_ZnS[i]:
-                    n = self.n_ZnS[i] * (1 + 5.43E-5 * (self.temp - 300))
-                    return n
-
-        elif material == "Si3N4":
-            try:
-                for i in range(0, len(self.wl_n_Si3N4)):
-                    if self.wl_n_Si3N4[i + 1] > lamda >= self.wl_n_Si3N4[i]:
-                        n = self.n_Si3N4[i] * (1 + 2.5E-5 * (self.temp - 300))
-                        return n
-            except IndexError:
-                if lamda < self.wl_n_Si3N4[0]:
-                    return 2.46306 * (1 + 2.5E-5 * (self.temp - 300))
-                elif lamda > self.wl_n_Si3N4[-1]:
-                    return 3.68517 * (1 + 2.5E-5 * (self.temp - 300))
-
-        elif material == "Si":
-            n = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
-            return n
-
-        elif material == "Air":
-            n = 1
-            return n
-
-    def cal_k(self, lamda, material):
-
-        """Calculate k based on the type of material at a certain lamda."""
-
-        k = 0
-        if material == "CdTe" or material == "MCT" or material == "SL":
-            return 0
-
-        elif material == "ZnSe":
-            for i in range(0, len(self.wl_k_ZnSe)):
-                if self.wl_k_ZnSe[i + 1] > lamda >= self.wl_k_ZnSe[i]:
-                    k = self.k_ZnSe[i]
-                    return k
-
-        elif material == "BaF2":
-            for i in range(0, len(self.wl_k_BaF2)):
-                if self.wl_k_BaF2[i + 1] > lamda >= self.wl_k_BaF2[i]:
-                    k = self.k_BaF2[i]
-                    return k
-
-        elif material == "Ge":
-            return 0
-
-        elif material == "ZnS":
-            for i in range(0, len(self.wl_k_ZnS)):
-                if self.wl_k_ZnS[i + 1] > lamda >= self.wl_k_ZnS[i]:
-                    k = self.k_ZnS[i]
-                    return k
-
-        elif material == "Si3N4":
-            try:
-                for i in range(0, len(self.wl_k_Si3N4)):
-                    if self.wl_k_Si3N4[i + 1] > lamda >= self.wl_k_Si3N4[i]:
-                        k = self.k_Si3N4[i]
-                        return k
-            except IndexError:
-                if lamda < self.wl_k_Si3N4[0]:
-                    return 0.00003
-                elif lamda > self.wl_k_Si3N4[-1]:
-                    return 0.92245
-
-        elif material == "Si":
-            return 0
-
-        elif material == "Air":
-            return 0
 
     def cal_absorption(self):
 
@@ -770,11 +841,11 @@ class FIT_FTIR:
 
 
 class cal_MCT_a:
-    def __init__(self, x, wavenumbers, fittype):
+    def __init__(self, x, wavenumbers, temperature, fittype):
         self.x = float(x)
         self.wavenumbers = wavenumbers
         self.absorptions = []
-        self.T = 300
+        self.T = temperature
         self.fittype = fittype
 
         if self.fittype == "Chu":
@@ -1026,12 +1097,12 @@ class FTIR_fittingtool_GUI(Frame):
                              command=self.load_structure, highlightbackground='#262626', width=12)
         buttonload2.pack(side=LEFT)
 
-        buttonsave = Button(self.frame0, text="(S)how Fringes",
-                            command=self.show_fringes, highlightbackground='#262626', width=12)
+        buttonsave = Button(self.frame0, text="(S)how Trans",
+                            command=self.show_fringes, highlightbackground='#262626', width=10)
         buttonsave.pack(side=RIGHT)
 
-        buttonfringes = Button(self.frame0, text="(F)it Fringes",
-                               command=self.fit_fringes, highlightbackground='#262626', width=10)
+        buttonfringes = Button(self.frame0, text="(F)it Trans",
+                               command=self.fit_fringes, highlightbackground='#262626', width=8)
         buttonfringes.pack(side=RIGHT)
 
         buttoncal = Button(self.frame0, text="Cal (a)",
@@ -1474,10 +1545,10 @@ class FTIR_fittingtool_GUI(Frame):
                         'You can load or save a structure from file.')
             self.addlog('The "cut" and "zoom" function on the bottom can set the range of interest.')
             self.addlog('"scale factor" and "angle" settings are also on the bottom. '
-                        'Click "Show fringes" to see the result. ')
+                        'Click "Show Trans" to see the result. ')
             self.addlog('Click "Set" to apply CdTe/HgTe offsets to the layer thicknesses. '
                         'Note! Only the layers with check marks will be changed accordingly. ')
-            self.addlog('Use "Fit fringes" to find the best CdTe/HgTe offset. Currently this function is running slow.')
+            self.addlog('Use "Fit Trans" to find the best CdTe/HgTe offset. Currently this function is running slow.')
 
             if _platform == "darwin":
                 self.addlog('For more help and information, press ⌘+P again.')
@@ -1527,8 +1598,13 @@ class FTIR_fittingtool_GUI(Frame):
             helplines.insert(END, '\nThe fitting range for CdTe offset is +-10, and for HgTe is +-5. '
                                   'You can change them inside the code.')
             helplines.insert(END, '\nThe accuracy of the fitting is questionable due to fundamental reasons.')
-            helplines.insert(END, '\nCurrently the program can only fit the fringes for MCT and SL materials. '
-                                  'Fitting the cutoff curve can be challenging and inaccurate. ')
+            helplines.insert(END, '\nNow the program can fit both the fringes and cutoff curve. ')
+            helplines.insert(END, '\nFitting cutoff uses the fitting parameters described in: '
+                                  'Schacham and Finkman, J. Appl. Phys. 57, 2001 (1985). ')
+            helplines.insert(END, '\nSome parameters are adjusted based on real experiment data. See code for detail.')
+            helplines.insert(END, '\nFitting fringes and cutoff curve are totally different. '
+                                  'While fitting fringes use pure theory and measured refraction index, '
+                                  'fitting curoff curve is semi-classical. The fitting parameters could change. ')
 
             helplines.insert(END, '\n\nHot keys:')
             if _platform == "darwin":
@@ -1536,15 +1612,20 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   ⌘+L: Load existing layer Structures.')
                 helplines.insert(END, '\n   ⌘+A: Calculate absorption coefficient.')
                 helplines.insert(END, '\n   ⌘+F: Fit transmission fringes.')
-                helplines.insert(END, '\n   ⌘+S: show interference fringes using the input parameters.')
+                helplines.insert(END, '\n   ⌘+S: Show Transmissions using the input parameters.')
             elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
                 helplines.insert(END, '\n   Ctrl+O: Open .csv data file.')
                 helplines.insert(END, '\n   Ctrl+L: Load existing layer Structures.')
                 helplines.insert(END, '\n   Ctrl+A: Calculate absorption coefficient.')
                 helplines.insert(END, '\n   Ctrl+F: Fit transmission fringes.')
-                helplines.insert(END, '\n   Ctrl+S: show interference fringes using the input parameters.')
+                helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.52:')
+            helplines.insert(END, '\n   Now the program can fit the cutoff curve. See help file for details. ')
+            helplines.insert(END, '\n   Now the MCT absorption calculation function is T-dependent. ')
+            helplines.insert(END, '\n   Optimized UI buttons. ')
+            helplines.insert(END, '\n   Added new layer structure: VLWIR SL.')
             helplines.insert(END, '\nv. 2.51:')
             helplines.insert(END, '\n   Added T-dependent refractive index for ZnSe, BaF2 and Ge.')
             helplines.insert(END, '\n   Now one can calculate absorption coefficient '
@@ -2451,7 +2532,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.wavenumbers_MCT = self.wavenumbers
 
         def buttongofuncton():
-            fitobject = cal_MCT_a(float(entry_x.get()), self.wavenumbers_MCT, methodnameget.get())
+            fitobject = cal_MCT_a(float(entry_x.get()), self.wavenumbers_MCT, self.Temp, methodnameget.get())
 
             self.absorptions = fitobject.return_absorptions()
 
@@ -2472,7 +2553,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.numberofdata2 += 1
 
             self.addlog("Showing MCT abosorption curve "
-                        "for x = {} using {}'s formula.".format(float(entry_x.get()), methodnameget.get()))
+                        "for x = {} at {}K using {}'s formula.".format(float(entry_x.get()), self.Temp, methodnameget.get()))
 
             call_MCT_choosewindow.grab_release()
             self.masterroot.focus_set()

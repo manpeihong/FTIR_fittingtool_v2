@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.51
+# FTIR_fittingtool_v2.52
 The second generation of FTIR data fitting tool. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
@@ -27,6 +27,16 @@ Special Thanks: Dr. Yong Chang.
 
 
 Update log: 
+
+v2.52:
+
+Now the program can fit the cutoff curve. See help file for details. 
+
+Now the MCT absorption calculation function is T-dependent. 
+
+Optimized UI buttons. 
+
+Added new layer structure: VLWIR SL.
 
 v2.51:
 
