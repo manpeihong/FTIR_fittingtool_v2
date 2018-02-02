@@ -16,14 +16,14 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 
-__version__ = '2.52'
+__version__ = '2.53'
 __emailaddress__ = "pman3@uic.edu"
 
 
 class FIT_FTIR:
     def __init__(self, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox,
-                 progress_var, wn_beingcalculated):
+                 progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas):
         self.temp = temp
         self.wns = wavenumbers
         self.trans = transmissions
@@ -39,6 +39,9 @@ class FIT_FTIR:
         self.listbox = listbox
         self.progress_var = progress_var
         self.wn_beingcalculated = wn_beingcalculated
+        self.FTIRplot = FTIRplot
+        self.absorptionplot = absorptionplot
+        self.canvas = canvas
 
         self.n_list = []
         self.k_list = []
@@ -66,7 +69,7 @@ class FIT_FTIR:
 
         self.cal_crossover_a()
 
-        if self.fittingtype == 2:
+        if self.fittingtype == 1 or self.fittingtype == 2:
             self.show_fringes()
         else:
             pass
@@ -442,12 +445,34 @@ class FIT_FTIR:
         self.peakvalues = []
         self.reflections = []
         self.absorptions = []
+        numbercount = 0
         for wn in self.wns:
             self.lamda = 10000 / float(wn)
             self.E = 4.13566743 * 3 / 10 / self.lamda
             self.peakvalues.append(self.cal_fringes_single(self.lamda)[0])
             self.reflections.append(self.cal_fringes_single(self.lamda)[1])
             self.absorptions.append(self.cal_fringes_single(self.lamda)[2])
+
+            if self.fittingtype != 1:
+                numbercount += 1
+                if numbercount == 5 or numbercount == 10 or numbercount == 15 or numbercount == 20:
+                    percentage = (wn - self.wns[0]) / (self.wns[len(self.wns) - 1] - self.wns[0]) * 100
+                    self.progress_var.set(percentage)
+                    self.wn_beingcalculated.set(wn)
+                    if numbercount == 20:
+                        try:
+                            self.fitline.pop(0).remove()
+                        except (AttributeError, IndexError) as error:
+                            pass
+                        self.fitline = self.FTIRplot.plot(self.wns[0:len(self.peakvalues)], self.peakvalues, 'r')
+                        self.canvas.show()
+
+                        numbercount = 0
+        if self.fittingtype != 1:
+            try:
+                self.fitline.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
 
     def cal_fringes_single(self, lamda):
 
@@ -560,6 +585,7 @@ class FIT_FTIR:
 
         basek = 0
         numbercount = 0
+        numbercount2 = 0
         self.eta0s = np.cos(self.angle)
         self.eta0p = 1 / np.cos(self.angle)
         self.absorptions = []
@@ -694,7 +720,24 @@ class FIT_FTIR:
                 self.addlog('Fitting failed at wavenumber = {}cm-1'.format(self.wns[wn]))
                 self.absorptions.append(0)
 
+            numbercount2 += 1
+            if numbercount2 == 5:
+                try:
+                    self.fitline_absorption.pop(0).remove()
+                except (AttributeError, IndexError) as error:
+                    pass
+
+                self.fitline_absorption = self.absorptionplot.plot(self.wns[0: len(self.absorptions)], self.absorptions,
+                                                                   'r',
+                                                                   label='Calculated Absorption')
+                self.canvas.show()
+                numbercount2 = 0
+
         self.addlog('Fitting complete!')
+        try:
+            self.fitline_absorption.pop(0).remove()
+        except (AttributeError, IndexError) as error:
+            pass
         return self.absorptions
 
     def cal_absorption_single(self, wn):
@@ -923,7 +966,7 @@ class cal_MCT_a:
 class ThreadedTask_absorption(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
-                 wn_beingcalculated):
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -941,19 +984,61 @@ class ThreadedTask_absorption(threading.Thread):
         self.listbox = listbox
         self.progress_var = progress_var
         self.wn_beingcalculated = wn_beingcalculated
+        self.FTIRplot = FTIRplot
+        self.absorptionplot = absorptionplot
+        self.canvas = canvas
 
     def run(self):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas)
         self.queue.put(fitobject.cal_absorption())
+
+
+class ThreadedTask_show_fringes(threading.Thread):
+    def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
+                 checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas):
+        threading.Thread.__init__(self)
+        self.queue = queue_1
+        self.temp = temp
+        self.wns = wavenumbers
+        self.trans = transmissions
+        self.subd = subd
+        self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list \
+            = layertype_list, entry_x_list, entry_d_list, checklayer_list
+        self.scalefactor = scalefactor
+        self.angle = angle
+        self.CdTe_offset = CdTe_offset
+        self.HgTe_offset = HgTe_offset
+        self.subtype = subtype
+        self.fittype = fittype
+        self.listbox = listbox
+        self.progress_var = progress_var
+        self.wn_beingcalculated = wn_beingcalculated
+        self.FTIRplot = FTIRplot
+        self.absorptionplot = absorptionplot
+        self.canvas = canvas
+
+    def run(self):
+        fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
+                             self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
+                             self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas)
+        peakvalues_fit = fitobject.returnpeakvalues()
+        reflections_fit = fitobject.returnreflections()
+        absorptions_fit = fitobject.returnabsorptions()
+
+        result = [peakvalues_fit, reflections_fit, absorptions_fit]
+
+        self.queue.put(result)
 
 
 class ThreadedTask_fringes(threading.Thread):
     def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut,
                  trans_cut, subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
-                 subtype, fittype, listbox, progress_var, wn_beingcalculated):
+                 subtype, fittype, listbox, progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -980,6 +1065,9 @@ class ThreadedTask_fringes(threading.Thread):
         self.listbox = listbox
         self.progress_var = progress_var
         self.wn_beingcalculated = wn_beingcalculated
+        self.FTIRplot = FTIRplot
+        self.absorptionplot = absorptionplot
+        self.canvas = canvas
 
     def run(self):
         CdTe_fitrange = 10
@@ -1000,8 +1088,9 @@ class ThreadedTask_fringes(threading.Thread):
 
                 fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list,
                                      self.entry_x_list, self.entry_d_list, self.checklayer_list, self.scalefactor,
-                                     self.angle, CdTe_offset, HgTe_offset, self.subtype, 2, self.listbox,
-                                     self.progress_var, self.wn_beingcalculated)
+                                     self.angle, CdTe_offset, HgTe_offset, self.subtype, 1, self.listbox,
+                                     self.progress_var, self.wn_beingcalculated,
+                                     self.FTIRplot, self.absorptionplot, self.canvas)
                 self.peakvalues_fit = fitobject.returnpeakvalues()
 
                 self.MSE = 0
@@ -1014,6 +1103,13 @@ class ThreadedTask_fringes(threading.Thread):
                     self.smallest_MSE = self.MSE
                     self.best_CdTe_offset = CdTe_offset
                     self.best_HgTe_offset = HgTe_offset
+
+                    try:
+                        self.fitline2.pop(0).remove()
+                    except (AttributeError, IndexError) as error:
+                        pass
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                    self.canvas.show()
 
         result = [self.best_CdTe_offset, self.best_HgTe_offset, self.smallest_MSE]
 
@@ -1487,6 +1583,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.hline = self.FTIRplot.axhline(y=0, visible=True, color='k', linewidth=0.7)
         self.dot = self.FTIRplot.plot(0, 0, marker='o', color='r')
 
+        self.absorptionplot = self.FTIRplot.twinx()
+        self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
+        self.absorptionplot.set_xlim([self.lowercut, self.highercut])
+        self.absorptionplot.set_ylim([0, 12000])
+
         # a tk.DrawingArea
         self.canvas = FigureCanvasTkAgg(self.FTIRfigure, self.frame1)
         self.canvas.show()
@@ -1606,6 +1707,10 @@ class FTIR_fittingtool_GUI(Frame):
                                   'While fitting fringes use pure theory and measured refraction index, '
                                   'fitting curoff curve is semi-classical. The fitting parameters could change. ')
 
+            helplines.insert(END, '\nWarning: Killing a thread task(show transmission, fit transmission '
+                                  'or calculate absorption) while it is running is dangerous. Right now it can only '
+                                  'be done using "Clear" function. The negative consequences are unknown. ')
+
             helplines.insert(END, '\n\nHot keys:')
             if _platform == "darwin":
                 helplines.insert(END, '\n   ⌘+O: Open .csv data file.')
@@ -1621,6 +1726,10 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.53:')
+            helplines.insert(END, '\n   Added live graph for "Show Trans" function. ')
+            helplines.insert(END, '\n   Added live graph for "Fit Trans" function. ')
+            helplines.insert(END, '\n   Added live graph for "Cal a" function. ')
             helplines.insert(END, '\nv. 2.52:')
             helplines.insert(END, '\n   Now the program can fit the cutoff curve. See help file for details. ')
             helplines.insert(END, '\n   Now the MCT absorption calculation function is T-dependent. ')
@@ -2102,144 +2211,170 @@ class FTIR_fittingtool_GUI(Frame):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
                 self.trans_cut.append(float(self.transmissions[i]))
 
-        fitobject = FIT_FTIR(self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(), self.layertype_list,
-                             self.entry_x_list, self.entry_d_list, self.checklayer_list, float(self.entry_21.get()),
-                             float(self.entry_22.get()), float(self.entry_23.get()), float(self.entry_24.get()),
-                             self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated)
-        self.peakvalues_fit = fitobject.returnpeakvalues()
-        self.reflections_fit = fitobject.returnreflections()
-        self.absorptions_fit = fitobject.returnabsorptions()
-        
-        if self.displayreflection == 0 and self.displayabsorption == 0:
-            try:
-                self.fitline2.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-            except (AttributeError, IndexError) as error:
+        try:
+            self.fitline2.pop(0).remove()
+        except (AttributeError, IndexError) as error:
+            pass
+
+        self.addprogressbar()
+        self.text2 = self.status2.cget("text")
+
+        self.queue = queue.Queue()
+        ThreadedTask_show_fringes(self.queue, self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(),
+                                self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
+                                float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
+                                float(self.entry_24.get()), self.subtype, 2, self.listbox, self.progress_var,
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas).start()
+        self.master.after(100, self.process_queue_show_fringes)
+
+    def process_queue_show_fringes(self):
+
+        """Threading function for self.show_fringes()."""
+
+        try:
+            self.trackwavenumber()
+            result = self.queue.get(0)
+
+            self.peakvalues_fit = result[0]
+            self.reflections_fit = result[1]
+            self.absorptions_fit = result[2]
+
+            if self.displayreflection == 0 and self.displayabsorption == 0:
                 try:
-                    self.fitline.pop(0).remove()
+                    self.fitline2.pop(0).remove()
                     self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
                 except (AttributeError, IndexError) as error:
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
 
-            try:
-                self.fitline3.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            try:
-                self.fitline4.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-            self.FTIRplot.set_ylabel('Transmission (%)')
-            self.FTIRplot.grid(True)
-            self.canvas.show()
-        elif self.displayreflection == 1 and self.displayabsorption == 0:
-            try:
-                self.fitline2.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-            except (AttributeError, IndexError) as error:
                 try:
-                    self.fitline.pop(0).remove()
+                    self.fitline3.pop(0).remove()
+                except (AttributeError, IndexError) as error:
+                    pass
+
+                try:
+                    self.fitline4.pop(0).remove()
+                except (AttributeError, IndexError) as error:
+                    pass
+
+                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_ylabel('Transmission (%)')
+                self.FTIRplot.grid(True)
+                self.canvas.show()
+            elif self.displayreflection == 1 and self.displayabsorption == 0:
+                try:
+                    self.fitline2.pop(0).remove()
                     self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
                 except (AttributeError, IndexError) as error:
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
 
-            try:
-                self.fitline3.pop(0).remove()
-                self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-            except (AttributeError, IndexError) as error:
                 try:
-                    self.fitline.pop(0).remove()
+                    self.fitline3.pop(0).remove()
                     self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
                 except (AttributeError, IndexError) as error:
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+
+                try:
+                    self.fitline4.pop(0).remove()
+                except (AttributeError, IndexError) as error:
+                    pass
+
+                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_ylabel('Transmission/Reflection (%)')
+                self.FTIRplot.grid(True)
+                self.canvas.show()
+
+            elif self.displayreflection == 0 and self.displayabsorption == 1:
+                try:
+                    self.fitline2.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                except (AttributeError, IndexError) as error:
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+
+                try:
+                    self.fitline4.pop(0).remove()
+                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                except (AttributeError, IndexError) as error:
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+
+                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_ylabel('Transmission/Absorption (%)')
+                self.FTIRplot.grid(True)
+                self.canvas.show()
+
+                try:
+                    self.fitline3.pop(0).remove()
+                except (AttributeError, IndexError) as error:
+                    pass
+
+            elif self.displayreflection == 1 and self.displayabsorption == 1:
+                try:
+                    self.fitline2.pop(0).remove()
+                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                except (AttributeError, IndexError) as error:
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+
+                try:
+                    self.fitline3.pop(0).remove()
                     self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-
-            try:
-                self.fitline4.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-            self.FTIRplot.set_ylabel('Transmission/Reflection (%)')
-            self.FTIRplot.grid(True)
-            self.canvas.show()
-
-        elif self.displayreflection == 0 and self.displayabsorption == 1:
-            try:
-                self.fitline2.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-            except (AttributeError, IndexError) as error:
-                try:
-                    self.fitline.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
                 except (AttributeError, IndexError) as error:
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
 
-            try:
-                self.fitline4.pop(0).remove()
-                self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-            except (AttributeError, IndexError) as error:
                 try:
-                    self.fitline.pop(0).remove()
+                    self.fitline4.pop(0).remove()
                     self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
                 except (AttributeError, IndexError) as error:
-                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                    try:
+                        self.fitline.pop(0).remove()
+                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
+                    except (AttributeError, IndexError) as error:
+                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
 
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-            self.FTIRplot.set_ylabel('Transmission/Absorption (%)')
-            self.FTIRplot.grid(True)
-            self.canvas.show()
+                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_ylabel('Transmission/Reflection/Absorption (%)')
+                self.FTIRplot.grid(True)
+                self.canvas.show()
 
-            try:
-                self.fitline3.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
+            self.removeprogressbar()
+            self.removewavenumber()
 
-        elif self.displayreflection == 1 and self.displayabsorption == 1:
-            try:
-                self.fitline2.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-            except (AttributeError, IndexError) as error:
-                try:
-                    self.fitline.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                except (AttributeError, IndexError) as error:
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-
-            try:
-                self.fitline3.pop(0).remove()
-                self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-            except (AttributeError, IndexError) as error:
-                try:
-                    self.fitline.pop(0).remove()
-                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-                except (AttributeError, IndexError) as error:
-                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-
-            try:
-                self.fitline4.pop(0).remove()
-                self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-            except (AttributeError, IndexError) as error:
-                try:
-                    self.fitline.pop(0).remove()
-                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-                except (AttributeError, IndexError) as error:
-                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
-            self.FTIRplot.set_ylabel('Transmission/Reflection/Absorption (%)')
-            self.FTIRplot.grid(True)
-            self.canvas.show()
+        except queue.Empty:
+            self.after(100, self.process_queue_show_fringes)
 
     def fit_fringes(self):
 
@@ -2275,6 +2410,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.addprogressbar()
         self.text2 = self.status2.cget("text")
 
+        try:
+            self.fitline2.pop(0).remove()
+        except (AttributeError, IndexError) as error:
+            pass
+
         self.addlog('*' * 60)
         self.addlog("Fitting fringes in process. Please wait...")
 
@@ -2284,7 +2424,8 @@ class FTIR_fittingtool_GUI(Frame):
                              self.entry_d_list_initial, self.layernumber, self.wavenumbers_cut, self.trans_cut,
                              float(self.entry_d_0.get()), self.layertype_list, self.entry_x_list, self.entry_d_list,
                              self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
-                             self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated).start()
+                             self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated,
+                             self.FTIRplot, self.absorptionplot, self.canvas).start()
         self.master.after(100, self.process_queue_fringes)
 
     def process_queue_fringes(self):
@@ -2313,7 +2454,8 @@ class FTIR_fittingtool_GUI(Frame):
                                  self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                  float(self.entry_21.get()), float(self.entry_22.get()),
                                  float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
-                                 self.listbox, self.progress_var, self.wn_beingcalculated)
+                                 self.listbox, self.progress_var, self.wn_beingcalculated,
+                                 self.FTIRplot, self.absorptionplot, self.canvas)
             self.peakvalues_fit = fitobject.returnpeakvalues()
 
             self.addlog('Fitting fringes complete. MSE={}'.format(result[2]))
@@ -2409,7 +2551,7 @@ class FTIR_fittingtool_GUI(Frame):
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
                                 float(self.entry_24.get()), self.subtype, 0, self.listbox, self.progress_var,
-                                self.wn_beingcalculated).start()
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas).start()
         self.master.after(100, self.process_queue_absorption)
 
     def process_queue_absorption(self):
@@ -2429,12 +2571,17 @@ class FTIR_fittingtool_GUI(Frame):
             except (AttributeError, IndexError) as error:
                 pass
 
+            try:
+                self.fitline_absorption.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
+
             self.absorptionplot = self.FTIRplot.twinx()
             self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers_cut1, self.absorptions,
                                                                self.colororders2[self.numberofdata2], label='Calculated Absorption')
             self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
-            self.absorptionplot.set_ylim([0, 10000])
+            self.absorptionplot.set_ylim([0, 12000])
 
             legend = self.absorptionplot.legend(loc='upper right', shadow=True)
             frame = legend.get_frame()
@@ -2675,7 +2822,8 @@ class FTIR_fittingtool_GUI(Frame):
                              self.entry_d_list, self.checklayer_list, float(self.entry_21.get()),
                              float(self.entry_22.get()),
                              float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 0,
-                             self.listbox, self.progress_var, self.wn_beingcalculated)
+                             self.listbox, self.progress_var, self.wn_beingcalculated,
+                             self.FTIRplot, self.absorptionplot, self.canvas)
         try:
             self.addlog('Absorption Coefficient: {}cm-1'.format(fitobject.cal_absorption_single(self.xclick)))
         except IndexError:
@@ -2689,6 +2837,12 @@ class FTIR_fittingtool_GUI(Frame):
                                                         "data, settings and graphs)?", icon='warning')
         if clearornot == 'yes':
             self.pack_forget()
+            try:
+                self.removeprogressbar()
+                self.removewavenumber()
+            except AttributeError:
+                pass
+
             self.__init__(self.root, self.masterroot, self.listbox, self.statusbar, self.status1, self.status2)
             self.addlog('*' * 60)
         else:
