@@ -2837,12 +2837,6 @@ class FTIR_fittingtool_GUI(Frame):
                                                         "data, settings and graphs)?", icon='warning')
         if clearornot == 'yes':
             self.pack_forget()
-            try:
-                self.removeprogressbar()
-                self.removewavenumber()
-            except AttributeError:
-                pass
-
             self.__init__(self.root, self.masterroot, self.listbox, self.statusbar, self.status1, self.status2)
             self.addlog('*' * 60)
         else:
