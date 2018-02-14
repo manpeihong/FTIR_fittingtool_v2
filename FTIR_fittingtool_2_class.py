@@ -15,6 +15,7 @@ import threading
 import queue
 import cross_platform_config
 from sys import platform as _platform
+import ftir_sql_browser
 
 __version__ = '2.53'
 __emailaddress__ = "pman3@uic.edu"
@@ -78,107 +79,32 @@ class FIT_FTIR:
 
         """Load all material refractive index data."""
 
-        self.wl_n_ZnSe = []
-        self.n_ZnSe = []
-        self.wl_k_ZnSe = []
-        self.k_ZnSe = []
-        self.wl_n_BaF2 = []
-        self.n_BaF2 = []
-        self.wl_k_BaF2 = []
-        self.k_BaF2 = []
-        self.wl_n_Ge = []
-        self.n_Ge = []
-        self.wl_k_Ge = []
-        self.k_Ge = []
-        self.wl_n_ZnS = []
-        self.n_ZnS = []
-        self.wl_k_ZnS = []
-        self.k_ZnS = []
-        self.wl_n_Si3N4 = []
-        self.n_Si3N4 = []
-        self.wl_k_Si3N4 = []
-        self.k_Si3N4 = []
+        reference_info = [ ("ZnSe_n.csv","wl_n_ZnSe","n_ZnSe"),
+                            ("ZnSe_k.csv","wl_k_ZnSe","k_ZnSe"),
+                            ("BaF2_n.csv","wl_n_BaF2","n_BaF2"),
+                            ("BaF2_k.csv","wl_k_BaF2","k_BaF2"),
+                            ("Ge_n_293K.csv","wl_n_Ge","n_Ge"),
+                            ("ZnS_n.csv","wl_n_ZnS","n_ZnS"),
+                            ("ZnS_k.csv","wl_k_ZnS","k_ZnS"),
+                            ("Si3N4_n.csv","wl_n_Si3N4","n_Si3N4"),
+                            ("Si3N4_k.csv","wl_k_Si3N4","k_Si3N4") ]
 
         self.osdir = os.getcwd()
         self.n_dir = os.getcwd() + "/Refractive_Index"
 
         os.chdir(self.n_dir)
-        with open('ZnSe_n.csv', 'r') as f1:
-            reader = csv.reader(f1, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_n_ZnSe.append(float(row[0]))
-                    self.n_ZnSe.append(float(row[1]))
-                except ValueError:
-                    pass
-        with open('ZnSe_k.csv', 'r') as f2:
-            reader = csv.reader(f2, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_k_ZnSe.append(float(row[0]))
-                    self.k_ZnSe.append(float(row[1]))
-                except ValueError:
-                    pass
-        with open('BaF2_n.csv', 'r') as f3:
-            reader = csv.reader(f3, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_n_BaF2.append(float(row[0]))
-                    self.n_BaF2.append(float(row[1]))
-                except ValueError:
-                    pass
-        with open('BaF2_k.csv', 'r') as f4:
-            reader = csv.reader(f4, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_k_BaF2.append(float(row[0]))
-                    self.k_BaF2.append(float(row[1]))
-                except ValueError:
-                    pass
 
-        with open('Ge_n_293K.csv', 'r') as f5:
-            reader = csv.reader(f5, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_n_Ge.append(float(row[0]))
-                    self.n_Ge.append(float(row[1]))
-                except ValueError:
-                    pass
-
-        with open('ZnS_n.csv', 'r') as f7:
-            reader = csv.reader(f7, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_n_ZnS.append(float(row[0]))
-                    self.n_ZnS.append(float(row[1]))
-                except ValueError:
-                    pass
-
-        with open('ZnS_k.csv', 'r') as f8:
-            reader = csv.reader(f8, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_k_ZnS.append(float(row[0]))
-                    self.k_ZnS.append(float(row[1]))
-                except ValueError:
-                    pass
-        with open('Si3N4_n.csv', 'r') as f9:
-            reader = csv.reader(f9, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_n_Si3N4.append(float(row[0]))
-                    self.n_Si3N4.append(float(row[1]))
-                except ValueError:
-                    pass
-
-        with open('Si3N4_k.csv', 'r') as f10:
-            reader = csv.reader(f10, delimiter=',')
-            for row in reader:
-                try:
-                    self.wl_k_Si3N4.append(float(row[0]))
-                    self.k_Si3N4.append(float(row[1]))
-                except ValueError:
-                    pass
+        for (file_name, x_data, y_data) in reference_info:
+            setattr(self, x_data, [])
+            setattr(self, y_data, [])
+            with open(file_name, 'r') as f:
+                reader = csv.reader(f, delimiter=',')
+                for row in reader:
+                    try:
+                        getattr(self, x_data).append(float(row[0]))
+                        getattr(self, y_data).append(float(row[1]))
+                    except ValueError:
+                        pass
 
         os.chdir(self.osdir)
 
@@ -1193,6 +1119,10 @@ class FTIR_fittingtool_GUI(Frame):
                              command=self.load_structure, highlightbackground='#262626', width=12)
         buttonload2.pack(side=LEFT)
 
+        buttonload3 = Button(self.frame0, text="(O)pen From SQL",
+                             command=self.openfromsql, highlightbackground='#262626', width=12)
+        buttonload3.pack(side=LEFT)
+
         buttonsave = Button(self.frame0, text="(S)how Trans",
                             command=self.show_fringes, highlightbackground='#262626', width=10)
         buttonsave.pack(side=RIGHT)
@@ -1420,9 +1350,9 @@ class FTIR_fittingtool_GUI(Frame):
         self.frame4.pack(side=TOP, fill=X, expand=True)
         self.frame4.pack_propagate(0)
 
-        Label(self.frame4, text='WaveNum(cm-1):',
+        Label(self.frame4, text='WaveNum(cm\u207B\u00B9):',
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
-        Label(self.frame4, text='Wavelength(um):',
+        Label(self.frame4, text='Wavelength(\u03BCm):',
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=2, columnspan=1, sticky=E)
         Label(self.frame4, text='Energy(meV):',
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 2, anchor=E).grid(row=0, column=4, columnspan=1, sticky=E)
@@ -1576,7 +1506,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.FTIRplot.plot(self.wavenumbers, self.transmissions)
         self.FTIRplot.set_xlim([self.lowercut, self.highercut])
         self.FTIRplot.set_ylim([0, self.transcut])
-        self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+        self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
         self.FTIRplot.set_ylabel('Transmission (%)')
         self.FTIRplot.grid(True)
         self.vline = self.FTIRplot.axvline(x=400, visible=True, color='k', linewidth=0.7)
@@ -1584,7 +1514,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.dot = self.FTIRplot.plot(0, 0, marker='o', color='r')
 
         self.absorptionplot = self.FTIRplot.twinx()
-        self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
+        self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
         self.absorptionplot.set_xlim([self.lowercut, self.highercut])
         self.absorptionplot.set_ylim([0, 12000])
 
@@ -1906,7 +1836,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.absorptionplot = self.FTIRplot.twinx()
             self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers, self.absorptions,
                                                                self.colororders2[self.numberofdata2], label=self.filename)
-            self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
+            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
             self.absorptionplot.set_ylim([0, 10000])
 
@@ -1939,7 +1869,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=self.filename)
             self.FTIRplot.set_xlim([self.lowercut, self.highercut])
             self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
             self.FTIRplot.set_ylabel('Transmission (%)')
             self.FTIRplot.grid(True)
 
@@ -1968,6 +1898,45 @@ class FTIR_fittingtool_GUI(Frame):
             self.addlog('Sample is probably characterized at UIC.')
         self.addlog('Hint: To display absorption coefficient at any point instantly, '
                     'a layer structure must be created or loaded first.')
+
+    def openfromsql(self):
+        if self.numberofdata >= 6:
+            self.addlog('Cannot add more data file.')
+            return
+
+        meta_data, data = ftir_sql_browser.Get_Data()
+        if not data[0]:
+            return
+        self.wavenumbers = data[0]
+        self.transmissions = np.array(data[1]) * 100
+        my_label = meta_data["sample_name"] + ' at T=' + str(meta_data["temperature_in_k"]) + ' K' # "date(time)", "bias_in_v", "time(time)"
+
+        # self.FTIRplot = self.FTIRfigure.add_subplot(111)
+        self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=my_label)
+        self.FTIRplot.set_xlim([self.lowercut, self.highercut])
+        self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
+        self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
+        self.FTIRplot.set_ylabel('Transmission (%)')
+        self.FTIRplot.grid(True)
+
+        legend = self.FTIRplot.legend(loc='upper right', shadow=True)
+        frame = legend.get_frame()
+        frame.set_facecolor('0.90')
+
+        # Set the fontsize
+        for label in legend.get_texts():
+            label.set_fontsize('medium')
+
+        for label in legend.get_lines():
+            label.set_linewidth(1.5)
+
+        # plt.savefig("test.png", dpi=300)
+        # self.FTIRfigure.show()
+
+        self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
+        self.numberofdata += 1
+
+        self.canvas.show()
 
     def savetofile(self):
 
@@ -2262,7 +2231,7 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.FTIRplot.set_xlim([self.lowercut, self.highercut])
                 self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
                 self.FTIRplot.set_ylabel('Transmission (%)')
                 self.FTIRplot.grid(True)
                 self.canvas.show()
@@ -2294,7 +2263,7 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.FTIRplot.set_xlim([self.lowercut, self.highercut])
                 self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
                 self.FTIRplot.set_ylabel('Transmission/Reflection (%)')
                 self.FTIRplot.grid(True)
                 self.canvas.show()
@@ -2322,7 +2291,7 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.FTIRplot.set_xlim([self.lowercut, self.highercut])
                 self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
                 self.FTIRplot.set_ylabel('Transmission/Absorption (%)')
                 self.FTIRplot.grid(True)
                 self.canvas.show()
@@ -2365,7 +2334,7 @@ class FTIR_fittingtool_GUI(Frame):
 
                 self.FTIRplot.set_xlim([self.lowercut, self.highercut])
                 self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
                 self.FTIRplot.set_ylabel('Transmission/Reflection/Absorption (%)')
                 self.FTIRplot.grid(True)
                 self.canvas.show()
@@ -2472,7 +2441,7 @@ class FTIR_fittingtool_GUI(Frame):
 
             self.FTIRplot.set_xlim([self.lowercut, self.highercut])
             self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers (cm-1)')
+            self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
             self.FTIRplot.set_ylabel('Transmission (%)')
             self.FTIRplot.grid(True)
             self.canvas.show()
@@ -2579,7 +2548,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.absorptionplot = self.FTIRplot.twinx()
             self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers_cut1, self.absorptions,
                                                                self.colororders2[self.numberofdata2], label='Calculated Absorption')
-            self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
+            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
             self.absorptionplot.set_ylim([0, 12000])
 
@@ -2691,7 +2660,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.absorptionplot = self.FTIRplot.twinx()
             self.fitline_MCT = self.absorptionplot.plot(self.wavenumbers_MCT, self.absorptions,
                                                             self.colororders2[self.numberofdata2])
-            self.absorptionplot.set_ylabel('Absorption Coefficient (cm-1)')
+            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
             self.absorptionplot.set_xlim([self.lowercut, self.highercut])
             self.absorptionplot.set_ylim([0, 10000])
 
