@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.53
+# FTIR_fittingtool_v2.54
 The second generation of FTIR data fitting tool. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
@@ -13,7 +13,7 @@ python 3.4 +
 
 The following packages need to be installed before running the program: 
 
-matplotlib, numpy. 
+matplotlib, numpy, PyQtChart and mysqlclient. Install using pip is recommended.  
 
 How to run it: 
 
@@ -27,6 +27,22 @@ Special Thanks: Dr. Yong Chang.
 
 
 Update log: 
+
+v2.54:
+
+Added "Open from SQL" function. (Ryan)
+
+Added new Qt based dialog window to load from sql servers. (Ryan)
+
+Simplified a chunk of initializing code for creating datastructures for reference files.(Ryan)
+ 
+Added unicode characters for -1 and mu where appropriate. (Ryan)
+
+Added "Blind calculation" in settings. Blind calculation runs faster. 
+
+Added interactive help for buttons.
+
+Added total time calculation to the logs. 
 
 v2.53:
 
