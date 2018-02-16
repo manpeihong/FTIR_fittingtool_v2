@@ -17,14 +17,14 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
-__version__ = '2.55'
+__version__ = '2.56'
 __emailaddress__ = "pman3@uic.edu"
 
 
 class FIT_FTIR:
     def __init__(self, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox,
-                 progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
+                 progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal, abortmission):
         self.temp = temp
         self.wns = wavenumbers
         self.trans = transmissions
@@ -44,6 +44,7 @@ class FIT_FTIR:
         self.absorptionplot = absorptionplot
         self.canvas = canvas
         self.blindcal = blindcal
+        self.abortmission = abortmission
 
         self.n_list = []
         self.k_list = []
@@ -386,6 +387,12 @@ class FIT_FTIR:
                     percentage = (wn - self.wns[0]) / (self.wns[len(self.wns) - 1] - self.wns[0]) * 100
                     self.progress_var.set(percentage)
                     self.wn_beingcalculated.set(wn)
+                    if self.abortmission.get() == 1:
+                        try:
+                            self.fitline.pop(0).remove()
+                        except (AttributeError, IndexError) as error:
+                            pass
+                        return
                     if numbercount == 20:
                         if self.blindcal == 0:
                             try:
@@ -650,6 +657,13 @@ class FIT_FTIR:
 
             numbercount2 += 1
             if numbercount2 == 5:
+                if self.abortmission.get() == 1:
+                    try:
+                        self.fitline_absorption.pop(0).remove()
+                    except (AttributeError, IndexError) as error:
+                        pass
+                    return "ABORT"
+
                 if self.blindcal == 0:
                     try:
                         self.fitline_absorption.pop(0).remove()
@@ -896,7 +910,7 @@ class cal_MCT_a:
 class ThreadedTask_absorption(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
-                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal, abortmission):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -918,19 +932,20 @@ class ThreadedTask_absorption(threading.Thread):
         self.absorptionplot = absorptionplot
         self.canvas = canvas
         self.blindcal = blindcal
+        self.abortmission = abortmission
 
     def run(self):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission)
         self.queue.put(fitobject.cal_absorption())
 
 
 class ThreadedTask_show_fringes(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
-                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal, abortmission):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -952,12 +967,17 @@ class ThreadedTask_show_fringes(threading.Thread):
         self.absorptionplot = absorptionplot
         self.canvas = canvas
         self.blindcal = blindcal
+        self.abortmission = abortmission
 
     def run(self):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal,
+                             self.abortmission)
+        if self.abortmission.get() == 1:
+            self.queue.put("ABORT")
+            return
         peakvalues_fit = fitobject.returnpeakvalues()
         reflections_fit = fitobject.returnreflections()
         absorptions_fit = fitobject.returnabsorptions()
@@ -970,7 +990,8 @@ class ThreadedTask_show_fringes(threading.Thread):
 class ThreadedTask_fringes(threading.Thread):
     def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut,
                  trans_cut, subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
-                 subtype, fittype, listbox, progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
+                 subtype, fittype, listbox, progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas,
+                 blindcal, abortmission):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -1001,6 +1022,7 @@ class ThreadedTask_fringes(threading.Thread):
         self.absorptionplot = absorptionplot
         self.canvas = canvas
         self.blindcal = blindcal
+        self.abortmission = abortmission
 
     def run(self):
         CdTe_fitrange = 10
@@ -1023,7 +1045,16 @@ class ThreadedTask_fringes(threading.Thread):
                                      self.entry_x_list, self.entry_d_list, self.checklayer_list, self.scalefactor,
                                      self.angle, CdTe_offset, HgTe_offset, self.subtype, 1, self.listbox,
                                      self.progress_var, self.wn_beingcalculated,
-                                     self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
+                                     self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission)
+
+                if self.abortmission.get() == 1:
+                    try:
+                        self.fitline2.pop(0).remove()
+                    except (AttributeError, IndexError) as error:
+                        pass
+                    self.queue.put("ABORT")
+                    return
+
                 self.peakvalues_fit = fitobject.returnpeakvalues()
 
                 self.MSE = 0
@@ -1107,6 +1138,8 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.totaltime = 0
         self.programbusy = 0
+        self.abortmission = DoubleVar()
+        self.abortmission.set(0)
 
         self.needmorehelp = 0
 
@@ -1198,6 +1231,11 @@ class FTIR_fittingtool_GUI(Frame):
         buttonsave.bind("<Enter>", lambda event, arg="Save calculation result to .csv file.": mouseon(event, arg))
         buttonsave.bind("<Leave>", mouseleave)
 
+        self.buttonabort = Button(self.frame0, text="ABORT", fg="Red",
+                                  command=self.Abort_mission, highlightbackground='#262626', width=5)
+        self.buttonabort.bind("<Enter>", lambda event, arg="Abort the current calculation in progress.": mouseon(event, arg))
+        self.buttonabort.bind("<Leave>", mouseleave)
+
         self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=100)
         self.filepath.pack(side=LEFT, fill=X)
 
@@ -1213,6 +1251,8 @@ class FTIR_fittingtool_GUI(Frame):
             buttonmct.pack_forget()
             buttonsave2.pack_forget()
             buttonsave.pack_forget()
+            if self.programbusy == 1:
+                self.buttonabort.pack_forget()
 
         def mouseleavefilepath(event):
             self.filepath.pack_forget()
@@ -1227,6 +1267,8 @@ class FTIR_fittingtool_GUI(Frame):
             buttonmct.pack(side=RIGHT)
             buttonsave2.pack(side=RIGHT)
             buttonsave.pack(side=RIGHT)
+            if self.programbusy == 1:
+                self.buttonabort.pack(side=RIGHT)
             self.filepath.pack(side=LEFT, fill=X)
 
         self.filepath.bind("<Enter>", mouseonfilepath)
@@ -1770,6 +1812,9 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.56:')
+            helplines.insert(END, '\n   Added "Abort mission" function. ')
+            helplines.insert(END, '\n   Added function to prevent user from clearing all data during calculation. ')
             helplines.insert(END, '\nv. 2.55:')
             helplines.insert(END, '\n   Added interactive help for a lot of buttons and labels. ')
             helplines.insert(END, '\n   Optimized UI for windows. ')
@@ -2335,7 +2380,8 @@ class FTIR_fittingtool_GUI(Frame):
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
                                 float(self.entry_24.get()), self.subtype, 2, self.listbox, self.progress_var,
-                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas,
+                                  self.blindcal, self.abortmission).start()
         self.master.after(100, self.process_queue_show_fringes)
 
     def process_queue_show_fringes(self):
@@ -2345,6 +2391,14 @@ class FTIR_fittingtool_GUI(Frame):
         try:
             self.trackwavenumber()
             result = self.queue.get(0)
+
+            if result == "ABORT":
+                self.addlog("Mission aborted.")
+                self.abortmission.set(0)
+                self.totaltime = 0
+                self.removeprogressbar()
+                self.removewavenumber()
+                return
 
             self.peakvalues_fit = result[0]
             self.reflections_fit = result[1]
@@ -2541,7 +2595,7 @@ class FTIR_fittingtool_GUI(Frame):
                              float(self.entry_d_0.get()), self.layertype_list, self.entry_x_list, self.entry_d_list,
                              self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
                              self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated,
-                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
+                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission).start()
         self.master.after(100, self.process_queue_fringes)
 
     def process_queue_fringes(self):
@@ -2550,6 +2604,14 @@ class FTIR_fittingtool_GUI(Frame):
 
         try:
             result = self.queue.get(0)
+
+            if result == "ABORT":
+                self.addlog("Mission aborted.")
+                self.abortmission.set(0)
+                self.totaltime = 0
+                self.removeprogressbar()
+                return
+
             # Show result of the task if needed
             self.entry_23.delete(0, END)
             self.entry_23.insert(0, '{0:.2f}'.format(result[0]))
@@ -2571,7 +2633,7 @@ class FTIR_fittingtool_GUI(Frame):
                                  float(self.entry_21.get()), float(self.entry_22.get()),
                                  float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                                  self.listbox, self.progress_var, self.wn_beingcalculated,
-                                 self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
+                                 self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission)
             self.peakvalues_fit = fitobject.returnpeakvalues()
 
             self.addlog('Fitting fringes complete. Total time: {:.1f}s. MSE={}'.format(self.totaltime, result[2]))
@@ -2670,7 +2732,8 @@ class FTIR_fittingtool_GUI(Frame):
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
                                 float(self.entry_24.get()), self.subtype, 0, self.listbox, self.progress_var,
-                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas,
+                                self.blindcal, self.abortmission).start()
         self.master.after(100, self.process_queue_absorption)
 
     def process_queue_absorption(self):
@@ -2682,6 +2745,14 @@ class FTIR_fittingtool_GUI(Frame):
             result = self.queue.get(0)
             # Show result of the task if needed
             self.absorptions = result
+
+            if result == "ABORT":
+                self.addlog("Mission aborted.")
+                self.abortmission.set(0)
+                self.totaltime = 0
+                self.removeprogressbar()
+                self.removewavenumber()
+                return
 
             self.addlog('Absorption calculation complete! Total time: {:.1f}s.'.format(self.totaltime))
 
@@ -2945,7 +3016,7 @@ class FTIR_fittingtool_GUI(Frame):
                              float(self.entry_22.get()),
                              float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 0,
                              self.listbox, self.progress_var, self.wn_beingcalculated,
-                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
+                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission)
         try:
             self.addlog('Absorption Coefficient: {}cm-1'.format(fitobject.cal_absorption_single(self.xclick)))
         except IndexError:
@@ -2955,6 +3026,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Clear everything. """
 
+        if self.programbusy == 1:
+            self.addlog("Calculation in progress. Abort the mission before clear all data. ")
+            return
+
         clearornot = messagebox.askquestion("CAUTION!", "Clear everything (including all layer structures, "
                                                         "data, settings and graphs)?", icon='warning')
         if clearornot == 'yes':
@@ -2963,6 +3038,9 @@ class FTIR_fittingtool_GUI(Frame):
             self.addlog('*' * 60)
         else:
             pass
+
+    def Abort_mission(self):
+        self.abortmission.set(1)
 
     def addlog(self, string):
         self.listbox.insert(END, string)
@@ -2975,6 +3053,9 @@ class FTIR_fittingtool_GUI(Frame):
         self.progressbar.pack(side=LEFT, fill=X, expand=1)
 
         self.programbusy = 1
+        self.filepath.pack_forget() # The filepath widget is preventing abort button from showing up for some reason.
+        self.buttonabort.pack(side=RIGHT)
+        self.filepath.pack(side=LEFT, fill=X)
 
     def removeprogressbar(self):
         self.progressbar.pack_forget()
@@ -2983,13 +3064,16 @@ class FTIR_fittingtool_GUI(Frame):
         self.status1.pack(side=LEFT, fill=X, expand=True)
         self.status1.pack_propagate(0)
 
+        self.progress_var.set(0)
         self.programbusy = 0
+        self.buttonabort.pack_forget()
 
     def trackwavenumber(self):
         self.status2.config(text='Wavenumber = {:.1f}cm-1'.format(self.wn_beingcalculated.get()))
 
     def removewavenumber(self):
         self.status2.config(text=self.text2)
+        self.wn_beingcalculated.set(0)
 
 
 def main():
