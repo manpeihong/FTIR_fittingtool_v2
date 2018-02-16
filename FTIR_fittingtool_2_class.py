@@ -16,8 +16,8 @@ import queue
 import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
-
-__version__ = '2.54'
+import guessnumbers
+__version__ = '2.55'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -1143,7 +1143,7 @@ class FTIR_fittingtool_GUI(Frame):
         buttonopen = Button(self.frame0, text='(O)pen',
                             command=self.openfromfile, highlightbackground='#262626', width=5)
         buttonopen.pack(side=LEFT)
-        buttonopen.bind("<Enter>", lambda event, arg="Open a .csv transmission data file. ": mouseon(event, arg))
+        buttonopen.bind("<Enter>", lambda event, arg="Open a .csv transmission data file from local. ": mouseon(event, arg))
         buttonopen.bind("<Leave>", mouseleave)
 
         buttonload3 = Button(self.frame0, text="Open From SQL",
@@ -1206,7 +1206,7 @@ class FTIR_fittingtool_GUI(Frame):
         buttonsave.bind("<Enter>", lambda event, arg="Save calculation result to .csv file.": mouseon(event, arg))
         buttonsave.bind("<Leave>", mouseleave)
 
-        self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=23)
+        self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=100)
         self.filepath.pack(side=LEFT, fill=X)
 
         def mouseonfilepath(event):
@@ -1221,7 +1221,6 @@ class FTIR_fittingtool_GUI(Frame):
             buttonmct.pack_forget()
             buttonsave2.pack_forget()
             buttonsave.pack_forget()
-            self.filepath.config(width=100)
 
         def mouseleavefilepath(event):
             self.filepath.pack_forget()
@@ -1237,7 +1236,6 @@ class FTIR_fittingtool_GUI(Frame):
             buttonsave2.pack(side=RIGHT)
             buttonsave.pack(side=RIGHT)
             self.filepath.pack(side=LEFT, fill=X)
-            self.filepath.config(width=23)
 
         self.filepath.bind("<Enter>", mouseonfilepath)
         self.filepath.bind("<Leave>", mouseleavefilepath)
@@ -1438,6 +1436,10 @@ class FTIR_fittingtool_GUI(Frame):
                                      highlightbackground='#2b2b2b', width=12)
         self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
 
+        self.buttonaddlayer.bind("<Enter>", lambda event, arg="Add one more layer on top of the current structure. "
+                                                              "22 layers maximum. ": mouseon(event, arg))
+        self.buttonaddlayer.bind("<Leave>", mouseleave)
+
         self.frame4 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame4.pack(side=TOP, fill=X, expand=True)
         self.frame4.pack_propagate(0)
@@ -1496,6 +1498,10 @@ class FTIR_fittingtool_GUI(Frame):
                           command=getbutton31, highlightbackground='#2b2b2b', anchor=W, width=3)
         button31.grid(row=0, column=2, sticky=W)
 
+        button31.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
+                                                   "got from the graph above. ": mouseon(event, arg))
+        button31.bind("<Leave>", mouseleave)
+
         def getbutton32():
             self.entry_32.delete(0, END)
             self.entry_32.insert(0, "%.4f" % self.xclick)
@@ -1503,6 +1509,9 @@ class FTIR_fittingtool_GUI(Frame):
         button32 = Button(self.frame2, text="Get",
                           command=getbutton32, highlightbackground='#2b2b2b', anchor=W, width=3)
         button32.grid(row=1, column=2, sticky=W)
+        button32.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
+                                                   "got from the graph above. ": mouseon(event, arg))
+        button32.bind("<Leave>", mouseleave)
 
         def getbutton33():
             self.entry_33.delete(0, END)
@@ -1511,6 +1520,9 @@ class FTIR_fittingtool_GUI(Frame):
         button33 = Button(self.frame2, text="Get",
                           command=getbutton33, highlightbackground='#2b2b2b', anchor=W, width=3)
         button33.grid(row=0, column=5, sticky=W)
+        button33.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
+                                                   "got from the graph above. ": mouseon(event, arg))
+        button33.bind("<Leave>", mouseleave)
 
         def getbutton332():
             self.entry_332.delete(0, END)
@@ -1519,6 +1531,9 @@ class FTIR_fittingtool_GUI(Frame):
         button332 = Button(self.frame2, text="Get",
                            command=getbutton332, highlightbackground='#2b2b2b', anchor=W, width=3)
         button332.grid(row=1, column=5, sticky=W)
+        button332.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
+                                                   "got from the graph above. ": mouseon(event, arg))
+        button332.bind("<Leave>", mouseleave)
 
         def CUT():
             self.lowercut = float(self.entry_31.get())
@@ -1545,34 +1560,50 @@ class FTIR_fittingtool_GUI(Frame):
         button34 = Button(self.frame2, text="Zoom all",
                           command=zoomall, highlightbackground='#2b2b2b', width=8)
         button34.grid(row=0, column=6)
+        button34.bind("<Enter>", lambda event, arg="Zoom out the graph to original boundaries. ": mouseon(event, arg))
+        button34.bind("<Leave>", mouseleave)
 
         button35 = Button(self.frame2, text="CUT",
                           command=CUT, highlightbackground='#2b2b2b', width=8)
         button35.grid(row=1, column=6, sticky=W)
+        button35.bind("<Enter>", lambda event, arg="Trim the graph using the numbers on the left.": mouseon(event, arg))
+        button35.bind("<Leave>", mouseleave)
 
         label_21 = Label(self.frame2, text='Scale %', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_21.grid(row=0, column=7, columnspan=1, sticky=E)
         self.entry_21 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_21.grid(row=0, column=8)
         self.entry_21.insert(0, "0.7")
+        label_21.bind("<Enter>", lambda event, arg="Fitting parameter to represent the percentage of light passing"
+                                                   " through the initial air-layers surface.": mouseon(event, arg))
+        label_21.bind("<Leave>", mouseleave)
 
         label_22 = Label(self.frame2, text='Angle:', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_22.grid(row=1, column=7, columnspan=1, sticky=E)
         self.entry_22 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_22.grid(row=1, column=8)
         self.entry_22.insert(0, "0.0")
+        label_22.bind("<Enter>", lambda event, arg="Angle of incident light(in radius unit). "
+                                                   "0 by default(Normal incidence).": mouseon(event, arg))
+        label_22.bind("<Leave>", mouseleave)
 
         label_23 = Label(self.frame2, text='CdTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_23.grid(row=0, column=9, columnspan=1, sticky=E)
         self.entry_23 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_23.grid(row=0, column=10)
         self.entry_23.insert(0, "0.0")
+        label_23.bind("<Enter>", lambda event, arg="Fitting parameter to represent the CdTe thickness difference "
+                                                   "between real value and designed value.": mouseon(event, arg))
+        label_23.bind("<Leave>", mouseleave)
 
         label_24 = Label(self.frame2, text='HgTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_24.grid(row=1, column=9, columnspan=1, sticky=E)
         self.entry_24 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_24.grid(row=1, column=10)
         self.entry_24.insert(0, "0.0")
+        label_24.bind("<Enter>", lambda event, arg="Fitting parameter to represent the HgTe thickness difference "
+                                                   "between real value and designed value.": mouseon(event, arg))
+        label_24.bind("<Leave>", mouseleave)
 
         self.intial_thicknesses_or_not = 1
         self.entry_d_list_initial = []
@@ -1597,7 +1628,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.FTIRplot.plot(self.wavenumbers, self.transmissions)
         self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-        self.FTIRplot.set_ylim([0, self.transcut])
+        self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
         self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
         self.FTIRplot.set_ylabel('Transmission (%)')
         self.FTIRplot.grid(True)
@@ -1666,12 +1697,11 @@ class FTIR_fittingtool_GUI(Frame):
             self.addlog("FTIR fitting tool v{}. With customization of layer structures. ".format(__version__))
             self.addlog('Open a FTIR transmission .csv file, then customize your layer structure on the right. '
                         'You can load or save a structure from file.')
-            self.addlog('The "cut" and "zoom" function on the bottom can set the range of interest.')
-            self.addlog('"scale factor" and "angle" settings are also on the bottom. '
-                        'Click "Show Trans" to see the result. ')
+            self.addlog('Click "Show Trans" to see the result. ')
             self.addlog('Click "Set" to apply CdTe/HgTe offsets to the layer thicknesses. '
                         'Note! Only the layers with check marks will be changed accordingly. ')
             self.addlog('Use "Fit Trans" to find the best CdTe/HgTe offset. Currently this function is running slow.')
+            self.addlog('You can do calculation using "Blind calculation" from "Settings" menu. It\'s usually faster.')
 
             if _platform == "darwin":
                 self.addlog('For more help and information, press ⌘+P again.')
@@ -1748,6 +1778,11 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.55:')
+            helplines.insert(END, '\n   Added interactive help for a lot of buttons and labels. ')
+            helplines.insert(END, '\n   Optimized UI for windows. ')
+            helplines.insert(END, '\n   Fixed two small bugs. ')
+            helplines.insert(END, '\n   Added GuessANumber. Click bottom left corner. ')
             helplines.insert(END, '\nv. 2.54:')
             helplines.insert(END, '\n   Added "Open from SQL" function. ')
             helplines.insert(END, '\n   Added new Qt based dialog window to load from sql servers. ')
@@ -2985,6 +3020,24 @@ def main():
     # root.iconbitmap("icon.icns")
     root.configure(background='#2b2b2b')
 
+    def guessanumber(event):
+        guesswindow = Toplevel()
+        w2 = 1000  # width for the window
+        h2 = 30  # height for the window
+        ws = root.winfo_screenwidth()  # width of the screen
+        hs = root.winfo_screenheight()  # height of the screen
+        # calculate x and y coordinates for the Tk root window
+        x2 = (ws / 2) - (w2 / 2)
+        y2 = (hs / 4) - (h2 / 4)
+        # set the dimensions of the screen
+        # and where it is placed
+        guesswindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
+        guesswindow.wm_title("Guess A Number!")
+        guesswindow.configure(background='#2b2b2b')
+        guesswindow.attributes('-topmost', 'true')
+        # guesswindow.grab_set()
+        guessnumbers.guessnumbers_GUI(guesswindow, guesswindow, listbox)
+
     # Status bar #
     statusbar = Frame(root, bg='#2b2b2b', bd=1, relief=RIDGE)
 
@@ -2992,6 +3045,7 @@ def main():
                         padx=4.2, width=21)
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
+    authorLabel.bind("<Button-1>", guessanumber)
 
     status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg='#a9b7c6', bg='#2b2b2b',
                     bd=1, relief=RIDGE)
