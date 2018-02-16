@@ -2347,6 +2347,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
+        if self.layernumber == 0:
+            self.addlog("Please create or load a layer structure first.")
+            return
+
         for i in range(1, self.layernumber + 1):
             self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
             self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
@@ -2361,7 +2365,7 @@ class FTIR_fittingtool_GUI(Frame):
             while addon <= 6000:
                 self.wavenumbers_cut.append(500 + addon)
                 self.trans_cut.append(0)
-                addon += 5
+                addon += 10
         for i in range(0, len(self.wavenumbers)):
             if float(self.entry_32.get()) > float(self.wavenumbers[i]) > float(self.entry_31.get()):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
@@ -2552,6 +2556,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
+        if self.layernumber == 0:
+            self.addlog("Please create or load a layer structure first.")
+            return
+
         for i in range(1, self.layernumber + 1):
             self.layertype_list.append(getattr(self, "layertypevar{}".format(i)).get())
             self.entry_x_list.append(float(getattr(self, "entry_x_{}".format(i)).get()))
@@ -2675,8 +2683,8 @@ class FTIR_fittingtool_GUI(Frame):
             self.entry_d_list.append(float(getattr(self, "entry_d_{}".format(i)).get()))
             self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
 
-        if len(self.layertype_list) == 0:
-            self.addlog("Please create or load a layer structure first!")
+        if self.layernumber == 0:
+            self.addlog("Please create or load a layer structure first.")
             return
 
         checktotal = 0
