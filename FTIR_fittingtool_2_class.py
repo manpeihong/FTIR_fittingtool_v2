@@ -17,14 +17,14 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 
-__version__ = '2.53'
+__version__ = '2.54'
 __emailaddress__ = "pman3@uic.edu"
 
 
 class FIT_FTIR:
     def __init__(self, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox,
-                 progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas):
+                 progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
         self.temp = temp
         self.wns = wavenumbers
         self.trans = transmissions
@@ -43,6 +43,7 @@ class FIT_FTIR:
         self.FTIRplot = FTIRplot
         self.absorptionplot = absorptionplot
         self.canvas = canvas
+        self.blindcal = blindcal
 
         self.n_list = []
         self.k_list = []
@@ -386,15 +387,16 @@ class FIT_FTIR:
                     self.progress_var.set(percentage)
                     self.wn_beingcalculated.set(wn)
                     if numbercount == 20:
-                        try:
-                            self.fitline.pop(0).remove()
-                        except (AttributeError, IndexError) as error:
-                            pass
-                        self.fitline = self.FTIRplot.plot(self.wns[0:len(self.peakvalues)], self.peakvalues, 'r')
-                        self.canvas.show()
+                        if self.blindcal == 0:
+                            try:
+                                self.fitline.pop(0).remove()
+                            except (AttributeError, IndexError) as error:
+                                pass
+                            self.fitline = self.FTIRplot.plot(self.wns[0:len(self.peakvalues)], self.peakvalues, 'r')
+                            self.canvas.show()
 
                         numbercount = 0
-        if self.fittingtype != 1:
+        if self.fittingtype != 1 and self.blindcal == 0:
             try:
                 self.fitline.pop(0).remove()
             except (AttributeError, IndexError) as error:
@@ -648,22 +650,24 @@ class FIT_FTIR:
 
             numbercount2 += 1
             if numbercount2 == 5:
-                try:
-                    self.fitline_absorption.pop(0).remove()
-                except (AttributeError, IndexError) as error:
-                    pass
+                if self.blindcal == 0:
+                    try:
+                        self.fitline_absorption.pop(0).remove()
+                    except (AttributeError, IndexError) as error:
+                        pass
 
-                self.fitline_absorption = self.absorptionplot.plot(self.wns[0: len(self.absorptions)], self.absorptions,
-                                                                   'r',
-                                                                   label='Calculated Absorption')
-                self.canvas.show()
+                    self.fitline_absorption = self.absorptionplot.plot(self.wns[0: len(self.absorptions)], self.absorptions,
+                                                                       'r',
+                                                                       label='Calculated Absorption')
+                    self.canvas.show()
                 numbercount2 = 0
 
         self.addlog('Fitting complete!')
-        try:
-            self.fitline_absorption.pop(0).remove()
-        except (AttributeError, IndexError) as error:
-            pass
+        if self.blindcal == 0:
+            try:
+                self.fitline_absorption.pop(0).remove()
+            except (AttributeError, IndexError) as error:
+                pass
         return self.absorptions
 
     def cal_absorption_single(self, wn):
@@ -892,7 +896,7 @@ class cal_MCT_a:
 class ThreadedTask_absorption(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
-                 wn_beingcalculated, FTIRplot, absorptionplot, canvas):
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -913,19 +917,20 @@ class ThreadedTask_absorption(threading.Thread):
         self.FTIRplot = FTIRplot
         self.absorptionplot = absorptionplot
         self.canvas = canvas
+        self.blindcal = blindcal
 
     def run(self):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
         self.queue.put(fitobject.cal_absorption())
 
 
 class ThreadedTask_show_fringes(threading.Thread):
     def __init__(self, queue_1, temp, wavenumbers, transmissions, subd, layertype_list, entry_x_list, entry_d_list,
                  checklayer_list, scalefactor, angle, CdTe_offset, HgTe_offset, subtype, fittype, listbox, progress_var,
-                 wn_beingcalculated, FTIRplot, absorptionplot, canvas):
+                 wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -946,12 +951,13 @@ class ThreadedTask_show_fringes(threading.Thread):
         self.FTIRplot = FTIRplot
         self.absorptionplot = absorptionplot
         self.canvas = canvas
+        self.blindcal = blindcal
 
     def run(self):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
         peakvalues_fit = fitobject.returnpeakvalues()
         reflections_fit = fitobject.returnreflections()
         absorptions_fit = fitobject.returnabsorptions()
@@ -964,7 +970,7 @@ class ThreadedTask_show_fringes(threading.Thread):
 class ThreadedTask_fringes(threading.Thread):
     def __init__(self, queue_1, temp, inital_CdTe, inital_HgTe, entry_d_list_initial, layernumber, wavenumbers_cut,
                  trans_cut, subd, layertype_list, entry_x_list, entry_d_list, checklayer_list, scalefactor, angle,
-                 subtype, fittype, listbox, progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas):
+                 subtype, fittype, listbox, progress_var, wn_beingcalculated, FTIRplot, absorptionplot, canvas, blindcal):
         threading.Thread.__init__(self)
         self.queue = queue_1
         self.temp = temp
@@ -994,6 +1000,7 @@ class ThreadedTask_fringes(threading.Thread):
         self.FTIRplot = FTIRplot
         self.absorptionplot = absorptionplot
         self.canvas = canvas
+        self.blindcal = blindcal
 
     def run(self):
         CdTe_fitrange = 10
@@ -1016,7 +1023,7 @@ class ThreadedTask_fringes(threading.Thread):
                                      self.entry_x_list, self.entry_d_list, self.checklayer_list, self.scalefactor,
                                      self.angle, CdTe_offset, HgTe_offset, self.subtype, 1, self.listbox,
                                      self.progress_var, self.wn_beingcalculated,
-                                     self.FTIRplot, self.absorptionplot, self.canvas)
+                                     self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
                 self.peakvalues_fit = fitobject.returnpeakvalues()
 
                 self.MSE = 0
@@ -1030,12 +1037,13 @@ class ThreadedTask_fringes(threading.Thread):
                     self.best_CdTe_offset = CdTe_offset
                     self.best_HgTe_offset = HgTe_offset
 
-                    try:
-                        self.fitline2.pop(0).remove()
-                    except (AttributeError, IndexError) as error:
-                        pass
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-                    self.canvas.show()
+                    if self.blindcal == 0:
+                        try:
+                            self.fitline2.pop(0).remove()
+                        except (AttributeError, IndexError) as error:
+                            pass
+                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+                        self.canvas.show()
 
         result = [self.best_CdTe_offset, self.best_HgTe_offset, self.smallest_MSE]
 
@@ -1083,7 +1091,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.fittedthickness = 0
         self.subtype = 1
         self.progress_var = DoubleVar()
-        self.text = ''
+
+        self.text = 'Welcome to FTIR Fitting Tool. Press ⌘+P for help.'
+        if _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
+            self.text = 'Welcome to FTIR Fitting Tool. Press Ctrl + P for help.'
+
         self.text2 = ''
         self.wn_beingcalculated = DoubleVar()
 
@@ -1091,7 +1103,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Si3N4", "Air"]
 
-        self.displayreflection, self.displayabsorption = 0, 0
+        self.blindcal, self.displayreflection, self.displayabsorption = 0, 0, 0
+
+        self.totaltime = 0
+        self.programbusy = 0
 
         self.needmorehelp = 0
 
@@ -1103,52 +1118,129 @@ class FTIR_fittingtool_GUI(Frame):
         self.frame0.pack(side=TOP, fill=X, expand=True)
         self.frame0.pack_propagate(0)
 
+        def mouseon(event, tip):
+            if self.programbusy == 0:
+                self.status1.config(text=tip)
+
+        def mouseleave(event):
+            if self.programbusy == 0:
+                self.status1.config(text=self.text)
+
         buttonsettings = Button(self.frame0, text="Settings",
                             command=self.settings, highlightbackground='#262626', width=7)
         buttonsettings.pack(side=LEFT)
 
+        buttonsettings.bind("<Enter>", lambda event, arg="Global Settings including Temperature.": mouseon(event, arg))
+        buttonsettings.bind("<Leave>", mouseleave)
+
         buttonclear = Button(self.frame0, text="Clear",
                              command=self.clearalldata, highlightbackground='#262626', width=5)
         buttonclear.pack(side=LEFT)
+        buttonclear.bind("<Enter>", lambda event, arg="Clear all data including "
+                                                         "graphs and layer structures.": mouseon(event, arg))
+        buttonclear.bind("<Leave>", mouseleave)
 
-        buttonopen = Button(self.frame0, text="(O)pen",
+        buttonopen = Button(self.frame0, text='(O)pen',
                             command=self.openfromfile, highlightbackground='#262626', width=5)
         buttonopen.pack(side=LEFT)
+        buttonopen.bind("<Enter>", lambda event, arg="Open a .csv transmission data file. ": mouseon(event, arg))
+        buttonopen.bind("<Leave>", mouseleave)
+
+        buttonload3 = Button(self.frame0, text="Open From SQL",
+                             command=self.openfromsql, highlightbackground='#262626', width=12)
+        buttonload3.pack(side=LEFT)
+        buttonload3.bind("<Enter>", lambda event, arg="Open a data file from MySQL database. ": mouseon(event, arg))
+        buttonload3.bind("<Leave>", mouseleave)
 
         buttonload2 = Button(self.frame0, text="(L)oad Structure",
                              command=self.load_structure, highlightbackground='#262626', width=12)
         buttonload2.pack(side=LEFT)
+        buttonload2.bind("<Enter>", lambda event, arg="Load existing layer structure. ": mouseon(event, arg))
+        buttonload2.bind("<Leave>", mouseleave)
 
+<<<<<<< HEAD
         buttonload3 = Button(self.frame0, text="(O)pen From SQL",
                              command=self.openfromsql, highlightbackground='#262626', width=12)
         buttonload3.pack(side=LEFT)
 
         buttonsave = Button(self.frame0, text="(S)how Trans",
+=======
+        buttonshowtrans = Button(self.frame0, text="(S)how Trans",
+>>>>>>> py_Peihong
                             command=self.show_fringes, highlightbackground='#262626', width=10)
-        buttonsave.pack(side=RIGHT)
+        buttonshowtrans.pack(side=RIGHT)
+        buttonshowtrans.bind("<Enter>", lambda event, arg="Calculate transmission curve "
+                                                         "based on layer structure.": mouseon(event, arg))
+        buttonshowtrans.bind("<Leave>", mouseleave)
 
         buttonfringes = Button(self.frame0, text="(F)it Trans",
                                command=self.fit_fringes, highlightbackground='#262626', width=8)
         buttonfringes.pack(side=RIGHT)
+        buttonfringes.bind("<Enter>", lambda event, arg="Fit calculated transmission curve "
+                                                         "with real data.": mouseon(event, arg))
+        buttonfringes.bind("<Leave>", mouseleave)
 
         buttoncal = Button(self.frame0, text="Cal (a)",
                            command=self.cal_absorption, highlightbackground='#262626', width=5)
         buttoncal.pack(side=RIGHT)
+        buttoncal.bind("<Enter>", lambda event, arg="Calculate absorption coefficient "
+                                                         "for the whole wavenumber range.": mouseon(event, arg))
+        buttoncal.bind("<Leave>", mouseleave)
 
         buttonmct = Button(self.frame0, text="MCT a",
                            command=self.cal_MCT_absorption, highlightbackground='#262626', width=5)
         buttonmct.pack(side=RIGHT)
+        buttonmct.bind("<Enter>", lambda event, arg="Show theoretical modelings of "
+                                                         "MCT absorption coefficient.": mouseon(event, arg))
+        buttonmct.bind("<Leave>", mouseleave)
 
         buttonsave2 = Button(self.frame0, text="Save Structure",
                              command=self.save_structure, highlightbackground='#262626', width=12)
         buttonsave2.pack(side=RIGHT)
+        buttonsave2.bind("<Enter>", lambda event, arg="Save the present structure to file.": mouseon(event, arg))
+        buttonsave2.bind("<Leave>", mouseleave)
 
         buttonsave = Button(self.frame0, text="Save result",
                             command=self.savetofile, highlightbackground='#262626', width=9)
         buttonsave.pack(side=RIGHT)
+        buttonsave.bind("<Enter>", lambda event, arg="Save calculation result to .csv file.": mouseon(event, arg))
+        buttonsave.bind("<Leave>", mouseleave)
 
         self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=23)
         self.filepath.pack(side=LEFT, fill=X)
+
+        def mouseonfilepath(event):
+            buttonsettings.pack_forget()
+            buttonclear.pack_forget()
+            buttonopen.pack_forget()
+            buttonload3.pack_forget()
+            buttonload2.pack_forget()
+            buttonshowtrans.pack_forget()
+            buttonfringes.pack_forget()
+            buttoncal.pack_forget()
+            buttonmct.pack_forget()
+            buttonsave2.pack_forget()
+            buttonsave.pack_forget()
+            self.filepath.config(width=100)
+
+        def mouseleavefilepath(event):
+            self.filepath.pack_forget()
+            buttonsettings.pack(side=LEFT)
+            buttonclear.pack(side=LEFT)
+            buttonopen.pack(side=LEFT)
+            buttonload3.pack(side=LEFT)
+            buttonload2.pack(side=LEFT)
+            buttonshowtrans.pack(side=RIGHT)
+            buttonfringes.pack(side=RIGHT)
+            buttoncal.pack(side=RIGHT)
+            buttonmct.pack(side=RIGHT)
+            buttonsave2.pack(side=RIGHT)
+            buttonsave.pack(side=RIGHT)
+            self.filepath.pack(side=LEFT, fill=X)
+            self.filepath.config(width=23)
+
+        self.filepath.bind("<Enter>", mouseonfilepath)
+        self.filepath.bind("<Leave>", mouseleavefilepath)
 
         self.frame3_shell = Frame(self, width=150, bg='#2b2b2b')
         self.frame3_shell.pack(side=RIGHT, fill=Y, expand=True)
@@ -1656,6 +1748,15 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.54:')
+            helplines.insert(END, '\n   Added "Open from SQL" function. ')
+            helplines.insert(END, '\n   Added new Qt based dialog window to load from sql servers. ')
+            helplines.insert(END, '\n   Simplified a chunk of initializing code for creating datastructures for '
+                                  'reference files. ')
+            helplines.insert(END, '\n   Added unicode characters for -1 and mu where appropriate. ')
+            helplines.insert(END, '\n   Added "Blind calculation" in settings. Blind calculation runs faster. ')
+            helplines.insert(END, '\n   Added interactive help for buttons. ')
+            helplines.insert(END, '\n   Added total time calculation to the logs. ')
             helplines.insert(END, '\nv. 2.53:')
             helplines.insert(END, '\n   Added live graph for "Show Trans" function. ')
             helplines.insert(END, '\n   Added live graph for "Fit Trans" function. ')
@@ -1723,7 +1824,7 @@ class FTIR_fittingtool_GUI(Frame):
             w2 = 250  # width for the window
         elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
             w2 = 200
-        h2 = 140  # height for the window
+        h2 = 170  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
@@ -1741,26 +1842,34 @@ class FTIR_fittingtool_GUI(Frame):
         Label(settingwindow, text="----------------General---------------",
               bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
 
+        self.blindcal_temp = IntVar()
+        checkboxblindcal = Checkbutton(settingwindow, text="Do blind calculation", variable=self.blindcal_temp,
+                                bg='#2b2b2b', fg="#a9b7c6")
+        checkboxblindcal.grid(row=1, column=0, columnspan=2, sticky=W)
+
+        if self.blindcal == 1:
+            checkboxblindcal.select()
+
         Label(settingwindow, text="Temperature (K):", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
-            .grid(row=1, column=0, sticky=W)
+            .grid(row=2, column=0, sticky=W)
         entry_s1 = Entry(settingwindow, highlightbackground='#2b2b2b', width=10)
-        entry_s1.grid(row=1, column=1, sticky=W)
+        entry_s1.grid(row=2, column=1, sticky=W)
         entry_s1.insert(0, self.Temp)
 
         Label(settingwindow, text="-------------Show Fringes------------",
-              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=2, column=0, columnspan=2, sticky=W)
+              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=3, column=0, columnspan=2, sticky=W)
 
         self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
         checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp,
                                 bg='#2b2b2b', fg="#a9b7c6")
-        checkboxr.grid(row=3, column=0, columnspan=2, sticky=W)
+        checkboxr.grid(row=4, column=0, columnspan=2, sticky=W)
 
         if self.displayreflection == 1:
             checkboxr.select()
 
         checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp,
                                 bg='#2b2b2b', fg="#a9b7c6")
-        checkboxa.grid(row=4, column=0, columnspan=2, sticky=W)
+        checkboxa.grid(row=5, column=0, columnspan=2, sticky=W)
 
         if self.displayabsorption== 1:
             checkboxa.select()
@@ -1769,6 +1878,7 @@ class FTIR_fittingtool_GUI(Frame):
         # Structurenamegetoption.focus_set()
 
         def buttonOkayfuncton():
+            self.blindcal = self.blindcal_temp.get()
             self.displayreflection = self.displayreflection_temp.get()
             self.displayabsorption = self.displayabsorption_temp.get()
             self.Temp = float(entry_s1.get())
@@ -1789,10 +1899,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         buttonOK = Button(settingwindow, text="OK",
                           command=buttonOkayfuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=5, column=0, columnspan=1)
+        buttonOK.grid(row=6, column=0, columnspan=1)
         buttonOK = Button(settingwindow, text="Cancel",
                           command=buttonCancelfuncton, highlightbackground='#2b2b2b', width=10)
-        buttonOK.grid(row=5, column=1, columnspan=1)
+        buttonOK.grid(row=6, column=1, columnspan=1)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
     def openfromfile(self):
@@ -1900,6 +2010,12 @@ class FTIR_fittingtool_GUI(Frame):
                     'a layer structure must be created or loaded first.')
 
     def openfromsql(self):
+<<<<<<< HEAD
+=======
+
+        """Open from sql database. """
+
+>>>>>>> py_Peihong
         if self.numberofdata >= 6:
             self.addlog('Cannot add more data file.')
             return
@@ -1911,6 +2027,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.transmissions = np.array(data[1]) * 100
         my_label = meta_data["sample_name"] + ' at T=' + str(meta_data["temperature_in_k"]) + ' K' # "date(time)", "bias_in_v", "time(time)"
 
+<<<<<<< HEAD
+=======
+        self.filepath.config(text=my_label)
+
+>>>>>>> py_Peihong
         # self.FTIRplot = self.FTIRfigure.add_subplot(111)
         self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=my_label)
         self.FTIRplot.set_xlim([self.lowercut, self.highercut])
@@ -2193,7 +2314,7 @@ class FTIR_fittingtool_GUI(Frame):
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
                                 float(self.entry_24.get()), self.subtype, 2, self.listbox, self.progress_var,
-                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas).start()
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
         self.master.after(100, self.process_queue_show_fringes)
 
     def process_queue_show_fringes(self):
@@ -2207,6 +2328,10 @@ class FTIR_fittingtool_GUI(Frame):
             self.peakvalues_fit = result[0]
             self.reflections_fit = result[1]
             self.absorptions_fit = result[2]
+
+            self.addlog('Showing transmission calculated curve! Total time: {:.1f}s.'.format(self.totaltime))
+
+            self.totaltime = 0
 
             if self.displayreflection == 0 and self.displayabsorption == 0:
                 try:
@@ -2343,6 +2468,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.removewavenumber()
 
         except queue.Empty:
+            self.totaltime += 0.1
             self.after(100, self.process_queue_show_fringes)
 
     def fit_fringes(self):
@@ -2394,7 +2520,7 @@ class FTIR_fittingtool_GUI(Frame):
                              float(self.entry_d_0.get()), self.layertype_list, self.entry_x_list, self.entry_d_list,
                              self.checklayer_list, float(self.entry_21.get()), float(self.entry_22.get()),
                              self.subtype, 2, self.listbox, self.progress_var, self.wn_beingcalculated,
-                             self.FTIRplot, self.absorptionplot, self.canvas).start()
+                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
         self.master.after(100, self.process_queue_fringes)
 
     def process_queue_fringes(self):
@@ -2424,10 +2550,12 @@ class FTIR_fittingtool_GUI(Frame):
                                  float(self.entry_21.get()), float(self.entry_22.get()),
                                  float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 2,
                                  self.listbox, self.progress_var, self.wn_beingcalculated,
-                                 self.FTIRplot, self.absorptionplot, self.canvas)
+                                 self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
             self.peakvalues_fit = fitobject.returnpeakvalues()
 
-            self.addlog('Fitting fringes complete. MSE={}'.format(result[2]))
+            self.addlog('Fitting fringes complete. Total time: {:.1f}s. MSE={}'.format(self.totaltime, result[2]))
+
+            self.totaltime = 0
 
             try:
                 self.fitline2.pop(0).remove()
@@ -2449,6 +2577,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.removeprogressbar()
 
         except queue.Empty:
+            self.totaltime += 0.1
             self.after(100, self.process_queue_fringes)
 
     def cal_absorption(self):
@@ -2520,7 +2649,7 @@ class FTIR_fittingtool_GUI(Frame):
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
                                 float(self.entry_24.get()), self.subtype, 0, self.listbox, self.progress_var,
-                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas).start()
+                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal).start()
         self.master.after(100, self.process_queue_absorption)
 
     def process_queue_absorption(self):
@@ -2533,7 +2662,9 @@ class FTIR_fittingtool_GUI(Frame):
             # Show result of the task if needed
             self.absorptions = result
 
-            self.addlog('Absorption calculation complete!')
+            self.addlog('Absorption calculation complete! Total time: {:.1f}s.'.format(self.totaltime))
+
+            self.totaltime = 0
 
             try:
                 self.fitline2.pop(0).remove()
@@ -2594,6 +2725,7 @@ class FTIR_fittingtool_GUI(Frame):
                 self.removewavenumber()
                 return
         except queue.Empty:
+            self.totaltime += 0.1
             self.after(100, self.process_queue_absorption)
 
     def cal_MCT_absorption(self):
@@ -2792,7 +2924,7 @@ class FTIR_fittingtool_GUI(Frame):
                              float(self.entry_22.get()),
                              float(self.entry_23.get()), float(self.entry_24.get()), self.subtype, 0,
                              self.listbox, self.progress_var, self.wn_beingcalculated,
-                             self.FTIRplot, self.absorptionplot, self.canvas)
+                             self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal)
         try:
             self.addlog('Absorption Coefficient: {}cm-1'.format(fitobject.cal_absorption_single(self.xclick)))
         except IndexError:
@@ -2816,11 +2948,12 @@ class FTIR_fittingtool_GUI(Frame):
         self.listbox.yview(END)
 
     def addprogressbar(self):
-        self.text = self.status1.cget("text")
         self.status1.pack_forget()
 
         self.progressbar = Progressbar(self.statusbar, variable=self.progress_var, maximum=100)
         self.progressbar.pack(side=LEFT, fill=X, expand=1)
+
+        self.programbusy = 1
 
     def removeprogressbar(self):
         self.progressbar.pack_forget()
@@ -2828,6 +2961,8 @@ class FTIR_fittingtool_GUI(Frame):
         self.status1 = Label(self.statusbar, text=self.text, fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE)
         self.status1.pack(side=LEFT, fill=X, expand=True)
         self.status1.pack_propagate(0)
+
+        self.programbusy = 0
 
     def trackwavenumber(self):
         self.status2.config(text='Wavenumber = {:.1f}cm-1'.format(self.wn_beingcalculated.get()))
