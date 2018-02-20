@@ -17,7 +17,7 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
-__version__ = '2.56'
+__version__ = '2.57'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -1116,7 +1116,6 @@ class FTIR_fittingtool_GUI(Frame):
         self.peakvalues_fit = []
         self.reflections_fit = []
         self.absorptions_fit = []
-        self.fitline = None
         self.MSE = 0
         self.MSE_new = 0
         self.fittedthickness = 0
@@ -1140,6 +1139,13 @@ class FTIR_fittingtool_GUI(Frame):
         self.programbusy = 0
         self.abortmission = DoubleVar()
         self.abortmission.set(0)
+
+        self.fitline_data = None
+        self.fitline_data_ab = None
+        self.fitline_trans = None
+        self.fitline_reflect = None
+        self.fitline_absorb = None
+        self.fitline_absorb_MCT = None
 
         self.needmorehelp = 0
 
@@ -1820,6 +1826,9 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.57:')
+            helplines.insert(END, '\n   Optimized coding for faster calculation. ')
+            helplines.insert(END, '\n   Added "Load background" warning for opening file from SQL. ')
             helplines.insert(END, '\nv. 2.56:')
             helplines.insert(END, '\n   Added "Abort mission" function. ')
             helplines.insert(END, '\n   Added function to prevent user from clearing all data during calculation. ')
@@ -1985,6 +1994,40 @@ class FTIR_fittingtool_GUI(Frame):
         buttonOK.grid(row=6, column=1, columnspan=1)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
+    def try_remove_fitline(self, thefitline):
+
+        """Remove an existing line."""
+
+        try:
+            thefitline.pop(0).remove()
+        except (AttributeError, IndexError) as error:
+            self.addlog("check")
+            pass
+
+    def plot_and_show(self, theplot, fitline, remove_fitline_or_not, x, y, color, thelabel, ylabel, legend_or_not, legend_location):
+
+        """Plot a new line on the subplot, and show it."""
+
+        if remove_fitline_or_not == 1:
+            self.try_remove_fitline(fitline)
+        fitline = theplot.plot(x, y, color, label=thelabel)
+        theplot.set_ylabel(ylabel)
+
+        if legend_or_not == 1:
+            legend = theplot.legend(loc=legend_location, shadow=True)
+            frame = legend.get_frame()
+            frame.set_facecolor('0.90')
+
+            # Set the fontsize
+            for label in legend.get_texts():
+                label.set_fontsize('medium')
+
+            for label in legend.get_lines():
+                label.set_linewidth(1.5)
+
+        self.canvas.show()
+        return fitline
+
     def openfromfile(self):
 
         """Open a FTIR transmission .csv file. """
@@ -2023,23 +2066,10 @@ class FTIR_fittingtool_GUI(Frame):
                         pass
             file.close()
 
-            self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers, self.absorptions,
-                                                               self.colororders2[self.numberofdata2], label=self.filename)
-            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
-            self.absorptionplot.set_xlim([self.lowercut, self.highercut])
-            self.absorptionplot.set_ylim([0, 10000])
-
-            legend = self.absorptionplot.legend(loc='upper right', shadow=True)
-            frame = legend.get_frame()
-            frame.set_facecolor('0.90')
-
-            # Set the fontsize
-            for label in legend.get_texts():
-                label.set_fontsize('medium')
-
-            for label in legend.get_lines():
-                label.set_linewidth(1.5)
+            self.fitline_data_ab = self.plot_and_show(self.absorptionplot, self.fitline_data_ab, 0,
+                                                      self.wavenumbers, self.absorptions,
+                                                      self.colororders2[self.numberofdata2], self.filename,
+                                                      'Absorption Coefficient ($cm^{-1}$)', 1, 'upper right')
 
             self.addlog('Added data {} ({})'.format(self.filename, self.colororders2[self.numberofdata2]))
             self.numberofdata2 += 1
@@ -2055,32 +2085,12 @@ class FTIR_fittingtool_GUI(Frame):
                         pass
             file.close()
 
-            # self.FTIRplot = self.FTIRfigure.add_subplot(111)
-            self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=self.filename)
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-            self.FTIRplot.set_ylabel('Transmission (%)')
-            self.FTIRplot.grid(True)
-
-            legend = self.FTIRplot.legend(loc='upper right', shadow=True)
-            frame = legend.get_frame()
-            frame.set_facecolor('0.90')
-
-            # Set the fontsize
-            for label in legend.get_texts():
-                label.set_fontsize('medium')
-
-            for label in legend.get_lines():
-                label.set_linewidth(1.5)
-
-            # plt.savefig("test.png", dpi=300)
-            # self.FTIRfigure.show()
+            self.fitline_data = self.plot_and_show(self.FTIRplot, self.fitline_data, 0, self.wavenumbers,
+                                                   self.transmissions, self.colororders[self.numberofdata],
+                                                   self.filename, 'Transmission (%)', 1, 'upper right')
 
             self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
             self.numberofdata += 1
-
-        self.canvas.show()
 
         if len(self.wavenumbers) == 5810:
             self.addlog('Sample is probably characterized at EPIR.')
@@ -2102,6 +2112,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         meta_data, data = ftir_sql_browser.Get_Data()
         if not data[0]:
+            self.addlog("Empty input! Make sure bakcground file is selected.")
             return
         self.wavenumbers = data[0]
         self.transmissions = np.array(data[1]) * 100
@@ -2111,6 +2122,7 @@ class FTIR_fittingtool_GUI(Frame):
 =======
         self.filepath.config(text=my_label)
 
+<<<<<<< HEAD
 >>>>>>> py_Peihong
         # self.FTIRplot = self.FTIRfigure.add_subplot(111)
         self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=my_label)
@@ -2133,11 +2145,14 @@ class FTIR_fittingtool_GUI(Frame):
 
         # plt.savefig("test.png", dpi=300)
         # self.FTIRfigure.show()
+=======
+        self.fitline_data = self.plot_and_show(self.FTIRplot, self.fitline_data, 0, self.wavenumbers,
+                                               self.transmissions, self.colororders[self.numberofdata],
+                                               my_label, 'Transmission (%)', 1, 'upper right')
+>>>>>>> py_Peihong
 
         self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
         self.numberofdata += 1
-
-        self.canvas.show()
 
     def savetofile(self):
 
@@ -2385,10 +2400,9 @@ class FTIR_fittingtool_GUI(Frame):
                 self.wavenumbers_cut.append(float(self.wavenumbers[i]))
                 self.trans_cut.append(float(self.transmissions[i]))
 
-        try:
-            self.fitline2.pop(0).remove()
-        except (AttributeError, IndexError) as error:
-            pass
+        self.try_remove_fitline(self.fitline_trans)
+        self.try_remove_fitline(self.fitline_reflect)
+        self.try_remove_fitline(self.fitline_absorb)
 
         self.addprogressbar()
         self.text2 = self.status2.cget("text")
@@ -2426,136 +2440,32 @@ class FTIR_fittingtool_GUI(Frame):
 
             self.totaltime = 0
 
-            if self.displayreflection == 0 and self.displayabsorption == 0:
-                try:
-                    self.fitline2.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
+            if self.displayreflection == 0:
+                self.fitline_trans = self.plot_and_show(self.FTIRplot, self.fitline_trans, 0, self.wavenumbers_cut,
+                                                        self.peakvalues_fit, 'r', '', 'Transmission (%)', 0,
+                                                        'upper right')
+            else:
+                self.fitline_trans = self.plot_and_show(self.FTIRplot, self.fitline_trans, 0, self.wavenumbers_cut,
+                                                        self.peakvalues_fit, 'g', '', 'Transmission (%)', 0,
+                                                        'upper right')
 
-                try:
-                    self.fitline3.pop(0).remove()
-                except (AttributeError, IndexError) as error:
-                    pass
-
-                try:
-                    self.fitline4.pop(0).remove()
-                except (AttributeError, IndexError) as error:
-                    pass
-
-                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-                self.FTIRplot.set_ylabel('Transmission (%)')
-                self.FTIRplot.grid(True)
-                self.canvas.show()
-            elif self.displayreflection == 1 and self.displayabsorption == 0:
-                try:
-                    self.fitline2.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-
-                try:
-                    self.fitline3.pop(0).remove()
-                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-
-                try:
-                    self.fitline4.pop(0).remove()
-                except (AttributeError, IndexError) as error:
-                    pass
-
-                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-                self.FTIRplot.set_ylabel('Transmission/Reflection (%)')
-                self.FTIRplot.grid(True)
-                self.canvas.show()
+            if self.displayreflection == 1 and self.displayabsorption == 0:
+                self.fitline_reflect = self.plot_and_show(self.FTIRplot, self.fitline_reflect, 0, self.wavenumbers_cut,
+                                                          self.reflections_fit, 'r', '', 'Transmission/Reflection (%)',
+                                                          0, 'upper right')
 
             elif self.displayreflection == 0 and self.displayabsorption == 1:
-                try:
-                    self.fitline2.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-
-                try:
-                    self.fitline4.pop(0).remove()
-                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-
-                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-                self.FTIRplot.set_ylabel('Transmission/Absorption (%)')
-                self.FTIRplot.grid(True)
-                self.canvas.show()
-
-                try:
-                    self.fitline3.pop(0).remove()
-                except (AttributeError, IndexError) as error:
-                    pass
+                self.fitline_absorb = self.plot_and_show(self.FTIRplot, self.fitline_absorb, 0, self.wavenumbers_cut,
+                                                         self.absorptions_fit, 'purple', '',
+                                                         'Transmission/Absorption (%)', 0, 'upper right')
 
             elif self.displayreflection == 1 and self.displayabsorption == 1:
-                try:
-                    self.fitline2.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'g')
-
-                try:
-                    self.fitline3.pop(0).remove()
-                    self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline3 = self.FTIRplot.plot(self.wavenumbers_cut, self.reflections_fit, 'r')
-
-                try:
-                    self.fitline4.pop(0).remove()
-                    self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-                except (AttributeError, IndexError) as error:
-                    try:
-                        self.fitline.pop(0).remove()
-                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-                    except (AttributeError, IndexError) as error:
-                        self.fitline4 = self.FTIRplot.plot(self.wavenumbers_cut, self.absorptions_fit, 'purple')
-
-                self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-                self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-                self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-                self.FTIRplot.set_ylabel('Transmission/Reflection/Absorption (%)')
-                self.FTIRplot.grid(True)
-                self.canvas.show()
+                self.fitline_reflect = self.plot_and_show(self.FTIRplot, self.fitline_reflect, 0, self.wavenumbers_cut,
+                                                          self.reflections_fit, 'r', '', 'Transmission/Reflection (%)',
+                                                          0, 'upper right')
+                self.fitline_absorb = self.plot_and_show(self.FTIRplot, self.fitline_absorb, 0, self.wavenumbers_cut,
+                                                         self.absorptions_fit, 'purple', '',
+                                                         'Transmission/Absorption (%)', 0, 'upper right')
 
             self.removeprogressbar()
             self.removewavenumber()
@@ -2602,10 +2512,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.addprogressbar()
         self.text2 = self.status2.cget("text")
 
-        try:
-            self.fitline2.pop(0).remove()
-        except (AttributeError, IndexError) as error:
-            pass
+        self.try_remove_fitline(self.fitline_trans)
 
         self.addlog('*' * 60)
         self.addlog("Fitting fringes in process. Please wait...")
@@ -2662,22 +2569,9 @@ class FTIR_fittingtool_GUI(Frame):
 
             self.totaltime = 0
 
-            try:
-                self.fitline2.pop(0).remove()
-                self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-            except (AttributeError, IndexError) as error:
-                try:
-                    self.fitline.pop(0).remove()
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-                except (AttributeError, IndexError) as error:
-                    self.fitline2 = self.FTIRplot.plot(self.wavenumbers_cut, self.peakvalues_fit, 'r')
-
-            self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-            self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-            self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-            self.FTIRplot.set_ylabel('Transmission (%)')
-            self.FTIRplot.grid(True)
-            self.canvas.show()
+            self.try_remove_fitline(self.fitline_trans)
+            self.fitline_trans = self.plot_and_show(self.FTIRplot, self.fitline_trans, 0, self.wavenumbers_cut,
+                                                    self.peakvalues_fit, 'r', '', 'Transmission (%)', 0, 'upper right')
 
             self.removeprogressbar()
 
@@ -2780,35 +2674,12 @@ class FTIR_fittingtool_GUI(Frame):
 
             self.totaltime = 0
 
-            try:
-                self.fitline2.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            try:
-                self.fitline_absorption.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_absorption = self.absorptionplot.plot(self.wavenumbers_cut1, self.absorptions,
-                                                               self.colororders2[self.numberofdata2], label='Calculated Absorption')
-            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
-            self.absorptionplot.set_xlim([self.lowercut, self.highercut])
-            self.absorptionplot.set_ylim([0, 12000])
-
-            legend = self.absorptionplot.legend(loc='upper right', shadow=True)
-            frame = legend.get_frame()
-            frame.set_facecolor('0.90')
-
-            # Set the fontsize
-            for label in legend.get_texts():
-                label.set_fontsize('medium')
-
-            for label in legend.get_lines():
-                label.set_linewidth(1.5)
-
-            self.canvas.show()
+            self.try_remove_fitline(self.fitline_trans)
+            self.try_remove_fitline(self.fitline_absorb)
+            self.fitline_absorb = self.plot_and_show(self.absorptionplot, self.fitline_absorb, 0, self.wavenumbers_cut1,
+                                                     self.absorptions, self.colororders2[self.numberofdata2],
+                                                     'Calculated Absorption', 'Absorption Coefficient ($cm^{-1}$)',
+                                                     1, 'upper right')
 
             self.numberofdata2 += 1
 
@@ -2898,19 +2769,11 @@ class FTIR_fittingtool_GUI(Frame):
 
             self.absorptions = fitobject.return_absorptions()
 
-            try:
-                self.fitline_MCT.pop(0).remove()
-            except (AttributeError, IndexError) as error:
-                pass
-
-            self.absorptionplot = self.FTIRplot.twinx()
-            self.fitline_MCT = self.absorptionplot.plot(self.wavenumbers_MCT, self.absorptions,
-                                                            self.colororders2[self.numberofdata2])
-            self.absorptionplot.set_ylabel('Absorption Coefficient ($cm^{-1}$)')
-            self.absorptionplot.set_xlim([self.lowercut, self.highercut])
-            self.absorptionplot.set_ylim([0, 10000])
-
-            self.canvas.show()
+            self.try_remove_fitline(self.fitline_absorb_MCT)
+            self.fitline_absorb_MCT = self.plot_and_show(self.absorptionplot, self.fitline_absorb_MCT, 0,
+                                                         self.wavenumbers_MCT, self.absorptions,
+                                                         self.colororders2[self.numberofdata2], '',
+                                                         'Absorption Coefficient ($cm^{-1}$)', 0, 'upper right')
 
             self.numberofdata2 += 1
 
