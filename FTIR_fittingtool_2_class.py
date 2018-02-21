@@ -17,39 +17,51 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
-__version__ = '2.58'
+import configparser
+import io
+
+__version__ = '2.58b'
 __emailaddress__ = "pman3@uic.edu"
 
 
 class color_theme:
-    theme = 0   # change this number to change the theme
-    if theme == 0:  # Dark: Default theme
-        bg = "#2b2b2b"
-        fg = "#a9b7c6"
-        bg_toolbar = '#262626'
-        bg_log = '#393c43'
-    elif theme == 1:    # Light
-        bg = "whitesmoke"
-        fg = "dimgrey"
-        bg_toolbar = 'gainsboro'
-        bg_log = 'darkgrey'
-    elif theme == 2:    # Royale
-        bg = "orangered"
-        fg = "white"
-        bg_toolbar = 'gold'
-        bg_log = 'gold'
+    def __init__(self, theme):
+        self.theme = int(theme)
+        self.bg = ''
+        self.fg = ''
+        self.bg_toolbar = ''
+        self.bg_log = ''
 
-    elif theme == 3:    # Skyblue
-        bg = "lightskyblue"
-        fg = "white"
-        bg_toolbar = 'dodgerblue'
-        bg_log = 'cornflowerblue'
+        self.changetheme()
 
-    elif theme == 4:    # Creamy
-        bg = "papayawhip"
-        fg = "gray"
-        bg_toolbar = 'orange'
-        bg_log = 'khaki'
+    def changetheme(self):
+        if self.theme == 0:  # Dark: Default theme
+            self.bg = "#2b2b2b"
+            self.fg = "#a9b7c6"
+            self.bg_toolbar = '#262626'
+            self.bg_log = '#393c43'
+        elif self.theme == 1:    # Light
+            self.bg = "whitesmoke"
+            self.fg = "dimgrey"
+            self.bg_toolbar = 'gainsboro'
+            self.bg_log = 'darkgrey'
+        elif self.theme == 2:    # Royale
+            self.bg = "orangered"
+            self.fg = "white"
+            self.bg_toolbar = 'gold'
+            self.bg_log = 'gold'
+
+        elif self.theme == 3:    # Skyblue
+            self.bg = "lightskyblue"
+            self.fg = "white"
+            self.bg_toolbar = 'dodgerblue'
+            self.bg_log = 'cornflowerblue'
+
+        elif self.theme == 4:    # Creamy
+            self.bg = "papayawhip"
+            self.fg = "gray"
+            self.bg_toolbar = 'orange'
+            self.bg_log = 'khaki'
 
 
 class FIT_FTIR:
@@ -1164,8 +1176,6 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.available_materials = ["CdTe", "MCT", "SL", "Si", "ZnSe", "BaF2", "Ge", "ZnS", "Si3N4", "Air"]
 
-        self.blindcal, self.displayreflection, self.displayabsorption = 0, 0, 0
-
         self.totaltime = 0
         self.programbusy = 0
         self.abortmission = DoubleVar()
@@ -1186,10 +1196,18 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.hld = 0
 
+        self.config = configparser.ConfigParser()
+        self.config.read('configuration.ini')
+        self.config_theme = self.config["Settings"]["colortheme"]
+
+        self.blindcal = int(self.config["Settings"]["blindcalculation"])
+        self.displayreflection = int(self.config["Settings"]["showreflection"])
+        self.displayabsorption = int(self.config["Settings"]["showabsorption"])
+
         # Set the color scheme for the frame
-        self.bg = color_theme.bg
-        self.fg = color_theme.fg
-        self.bg_toolbar = color_theme.bg_toolbar
+        self.bg = color_theme(self.config_theme).bg
+        self.fg = color_theme(self.config_theme).fg
+        self.bg_toolbar = color_theme(self.config_theme).bg_toolbar
 
         self.argu_fgbg = {'fg': self.fg, 'bg': self.bg}
         self.argu_entry1 = {'highlightbackground': self.bg, 'width': self.COLUMN1_WIDTH,
@@ -1347,7 +1365,7 @@ class FTIR_fittingtool_GUI(Frame):
         LABEL_WIDTH = 13
 
         def change_sub(*args):
-            if self.varsub.get() == "CdTe/Si":
+            if self.varsub.get() == "Si":
                 self.subtype = 1
             elif self.varsub.get() == "CdZnTe":
                 self.subtype = 2
@@ -1356,7 +1374,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         Label(self.frame3, text='Layers\u2193', **self.argu_fgbg, width=self.COLUMN0_WIDTH+2).grid(row=0, column=0, sticky=E)
         Label(self.frame3, text='x\u2193', **self.argu_fgbg, width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1, sticky=E)
-        Label(self.frame3, text='d\u2193', **self.argu_fgbg, width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
+        Label(self.frame3, text='d(\u03BCm)\u2193', **self.argu_fgbg, width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
 
         self.varsub = StringVar(self.frame3)
         self.varsub.set("Si")  # initial value
@@ -1512,7 +1530,7 @@ class FTIR_fittingtool_GUI(Frame):
                   fg=self.fg, bg=self.bg, width=LABEL_WIDTH, anchor=E).grid(row=1, column=0, columnspan=1, sticky=E)
             Label(calculatorwindow, text='Energy(meV):',
                   fg=self.fg, bg=self.bg, width=LABEL_WIDTH, anchor=E).grid(row=2, column=0, columnspan=1, sticky=E)
-            Label(calculatorwindow, text='MCT x:', fg=self.fg, bg=self.bg,
+            Label(calculatorwindow, text='Hg\u2081\u208b\u2093Cd\u2093Te x:', fg=self.fg, bg=self.bg,
                   width=LABEL_WIDTH, anchor=E).grid(row=3, column=0, columnspan=1, sticky=E)
             entry_c1 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
             entry_c2 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
@@ -1632,7 +1650,7 @@ class FTIR_fittingtool_GUI(Frame):
             label.config(fg=self.fg)
             self.status1.config(text=self.text)
 
-        label_comp = Label(self.frame4, text='MCT x:', **self.argu_fgbg, width=LABEL_WIDTH - 4, anchor=E)
+        label_comp = Label(self.frame4, text='Hg\u2081\u208b\u2093Cd\u2093Te x:', **self.argu_fgbg, width=LABEL_WIDTH - 4, anchor=E)
         label_comp.grid(row=0, column=6, columnspan=1, sticky=E)
         label_comp.bind("<Button-1>", wavelength_calculator)
         label_comp.bind("<Enter>", lambda event, arg=label_comp: mouseon_red(event, arg))
@@ -1946,6 +1964,8 @@ class FTIR_fittingtool_GUI(Frame):
 
             helplines.insert(END, '\n\nUpdate Log:')
             helplines.insert(END, '\nv. 2.58:')
+            helplines.insert(END, '\n   Added configurations to the configuration file. '
+                                  'Now you have the option to remember all settings in "settings". ')
             helplines.insert(END, '\n   Customized color theme. ')
             helplines.insert(END, '\nv. 2.57:')
             helplines.insert(END, '\n   Added wavenumber/wavelength/energy/composition calculator. ')
@@ -2035,7 +2055,7 @@ class FTIR_fittingtool_GUI(Frame):
             w2 = 250  # width for the window
         elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
             w2 = 200
-        h2 = 170  # height for the window
+        h2 = 300  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
@@ -2050,7 +2070,7 @@ class FTIR_fittingtool_GUI(Frame):
         settingwindow.attributes('-topmost', 'true')
         settingwindow.grab_set()
 
-        Label(settingwindow, text="----------------General---------------",
+        Label(settingwindow, text="---------------General----------------",
               bg=self.bg, fg=self.fg, anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
 
         self.blindcal_temp = IntVar()
@@ -2083,17 +2103,54 @@ class FTIR_fittingtool_GUI(Frame):
                                 bg=self.bg, fg=self.fg)
         checkboxa.grid(row=5, column=0, columnspan=2, sticky=W)
 
-        if self.displayabsorption== 1:
+        if self.displayabsorption == 1:
             checkboxa.select()
+
+        Label(settingwindow, text="-----------------Other----------------",
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=6, column=0, columnspan=2, sticky=W)
+
+        Label(settingwindow, text="Theme(Restart program needed):", bg=self.bg, fg=self.fg, anchor=W) \
+            .grid(row=7, column=0, columnspan=2, sticky=W)
+
+        themelist = ["Dark: Default", "Light", "Royale", "Skyblue", "Creamy"]
+        themeget = StringVar(settingwindow)
+        themeget.set(themelist[int(self.config_theme)])  # initial value
+
+        themeoption = OptionMenu(settingwindow, themeget, *themelist)
+        # '*'  to receive each list item as a separate parameter.
+        if _platform == "darwin":
+            themeoption.config(bg=self.bg, highlightthickness=0, width=24)
+        themeoption.grid(row=8, column=0, columnspan=2, sticky=W)
 
         # Samplenamegetoption.grab_set()
         # Structurenamegetoption.focus_set()
+
+        Label(settingwindow, text="--------------------------------------",
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=9, column=0, columnspan=2, sticky=W)
+
+        self.remembersettings = IntVar()
+        checkbox_rem = Checkbutton(settingwindow, text="Remem.my.choices(Change config)", variable=self.remembersettings,
+                                   bg=self.bg, fg=self.fg)
+        checkbox_rem.grid(row=10, column=0, columnspan=2, sticky=W)
 
         def buttonOkayfuncton():
             self.blindcal = self.blindcal_temp.get()
             self.displayreflection = self.displayreflection_temp.get()
             self.displayabsorption = self.displayabsorption_temp.get()
             self.Temp = float(entry_s1.get())
+
+            cfgfile = open('configuration.ini', 'w')
+            self.config.set("Settings", "colortheme", str(themelist.index(themeget.get())))
+            self.config.write(cfgfile)
+            cfgfile.close()
+
+            if self.remembersettings.get() == 1:
+                cfgfile = open('configuration.ini', 'w')
+                self.config.set("Settings", "blindcalculation", str(self.blindcal))
+                self.config.set("Settings", "showreflection", str(self.displayreflection))
+                self.config.set("Settings", "showabsorption", str(self.displayabsorption))
+                self.config.write(cfgfile)
+                cfgfile.close()
 
             settingwindow.grab_release()
             self.masterroot.focus_set()
@@ -2111,10 +2168,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         buttonOK = Button(settingwindow, text="OK",
                           command=buttonOkayfuncton, highlightbackground=self.bg, width=10)
-        buttonOK.grid(row=6, column=0, columnspan=1)
+        buttonOK.grid(row=11, column=0, columnspan=1)
         buttonOK = Button(settingwindow, text="Cancel",
                           command=buttonCancelfuncton, highlightbackground=self.bg, width=10)
-        buttonOK.grid(row=6, column=1, columnspan=1)
+        buttonOK.grid(row=11, column=1, columnspan=1)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
     def try_remove_fitline(self, thefitline):
@@ -2563,7 +2620,8 @@ class FTIR_fittingtool_GUI(Frame):
             self.reflections_fit = result[1]
             self.absorptions_fit = result[2]
 
-            self.addlog('Showing transmission calculated curve! Total time: {:.1f}s.'.format(self.totaltime))
+            self.addlog('Showing calculated transmission curve at {}K! '
+                        'Total time: {:.1f}s.'.format(self.Temp, self.totaltime))
 
             self.totaltime = 0
 
@@ -2868,7 +2926,7 @@ class FTIR_fittingtool_GUI(Frame):
         # '*'  to receive each list item as a separate parameter.
         methodnamegetoption.config(bg=self.bg, highlightthickness=0)
         methodnamegetoption.config(width=24)
-        methodnamegetoption["menu"].config(bg=self.bg)
+        # methodnamegetoption["menu"].config(bg=self.bg)
         methodnamegetoption.grid(row=1, column=0, columnspan=2)
         # Samplenamegetoption.grab_set()
         methodnamegetoption.focus_set()
@@ -3090,6 +3148,12 @@ class FTIR_fittingtool_GUI(Frame):
 
 
 def main():
+    # Load the configuration file
+
+    config = configparser.ConfigParser()
+    config.read('configuration.ini')
+    config_theme = config["Settings"]["colortheme"]
+
     root = Tk()
     w = cross_platform_config.config.FRAME_WIDTH  # width for the Tk root
     h = cross_platform_config.config.FRAME_HEIGHT  # height for the Tk root
@@ -3101,7 +3165,7 @@ def main():
 
     root.wm_title("FTIR Fitting Tool v. {}".format(__version__))
     # root.iconbitmap("icon.icns")
-    root.configure(background=color_theme.bg)
+    root.configure(background=color_theme(config_theme).bg)
 
     def guessanumber(event):
         guesswindow = Toplevel()
@@ -3116,7 +3180,7 @@ def main():
         # and where it is placed
         guesswindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
         guesswindow.wm_title("Guess A Number!")
-        guesswindow.configure(background=color_theme.bg)
+        guesswindow.configure(background=color_theme(config_theme).bg)
         guesswindow.attributes('-topmost', 'true')
         # guesswindow.grab_set()
         guessnumbers.guessnumbers_GUI(guesswindow, guesswindow, listbox)
@@ -3135,15 +3199,15 @@ def main():
         guesswindow.protocol("WM_DELETE_WINDOW", _delete_window)
 
     # Status bar #
-    statusbar = Frame(root, bg=color_theme.bg, bd=1, relief=RIDGE)
+    statusbar = Frame(root, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE)
 
     def mouseon_blue(event, label):
         label.config(fg="deep sky blue")
 
     def mouseleave_blue(event, label):
-        label.config(fg=color_theme.fg)
+        label.config(fg=color_theme(config_theme).fg)
 
-    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg=color_theme.fg, bg=color_theme.bg, bd=1, relief=RIDGE,
+    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
                         padx=4.2, width=21)
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
@@ -3151,13 +3215,13 @@ def main():
     authorLabel.bind("<Enter>", lambda event, arg=authorLabel: mouseon_blue(event, arg))
     authorLabel.bind("<Leave>", lambda event, arg=authorLabel: mouseleave_blue(event, arg))
 
-    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg=color_theme.fg, bg=color_theme.bg,
+    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg,
                     bd=1, relief=RIDGE)
     if _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
         status1.config(text='Welcome to FTIR Fitting Tool. Press Ctrl + P for help.')
     status1.pack(side=LEFT, fill=X, expand=True)
     status1.pack_propagate(0)
-    status2 = Label(statusbar, text='v. {}'.format(__version__), fg=color_theme.fg, bg=color_theme.bg, bd=1, relief=RIDGE,
+    status2 = Label(statusbar, text='v. {}'.format(__version__), fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
                     width=21)
     status2.pack(side=RIGHT)
 
@@ -3168,10 +3232,10 @@ def main():
     logFrame.pack(side=BOTTOM, fill=X, expand=False)
     logFrame.pack_propagate(0)
 
-    scrollbar = Scrollbar(logFrame, bg=color_theme.bg_log, highlightbackground=color_theme.bg_log, troughcolor=color_theme.bg_log)
+    scrollbar = Scrollbar(logFrame, bg=color_theme(config_theme).bg_log, highlightbackground=color_theme(config_theme).bg_log, troughcolor=color_theme(config_theme).bg_log)
     scrollbar.pack(side=RIGHT, fill=Y)
 
-    listbox = Listbox(logFrame, fg=color_theme.fg, bg=color_theme.bg_log, bd=0, selectbackground=color_theme.bg_toolbar, highlightthickness=0,
+    listbox = Listbox(logFrame, fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg_log, bd=0, selectbackground=color_theme(config_theme).bg_toolbar, highlightthickness=0,
                       yscrollcommand=scrollbar.set)
     listbox.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.config(command=listbox.yview)
