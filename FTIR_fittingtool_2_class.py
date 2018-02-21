@@ -17,7 +17,7 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
-__version__ = '2.57'
+__version__ = '2.57b'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -1165,82 +1165,68 @@ class FTIR_fittingtool_GUI(Frame):
             if self.programbusy == 0:
                 self.status1.config(text=self.text)
 
+        def widget_instructions(widget, instruction):
+            widget.bind("<Enter>", lambda event, arg=instruction: mouseon(event, arg))
+            widget.bind("<Leave>", mouseleave)
+
         buttonsettings = Button(self.frame0, text="Settings",
                             command=self.settings, highlightbackground='#262626', width=7)
         buttonsettings.pack(side=LEFT)
-
-        buttonsettings.bind("<Enter>", lambda event, arg="Global Settings including Temperature.": mouseon(event, arg))
-        buttonsettings.bind("<Leave>", mouseleave)
+        widget_instructions(buttonsettings, "Global Settings including Temperature.")
 
         buttonclear = Button(self.frame0, text="Clear",
                              command=self.clearalldata, highlightbackground='#262626', width=5)
         buttonclear.pack(side=LEFT)
-        buttonclear.bind("<Enter>", lambda event, arg="Clear all data including "
-                                                         "graphs and layer structures.": mouseon(event, arg))
-        buttonclear.bind("<Leave>", mouseleave)
+        widget_instructions(buttonclear, "Clear all data including graphs and layer structures.")
 
         buttonopen = Button(self.frame0, text='(O)pen',
                             command=self.openfromfile, highlightbackground='#262626', width=5)
         buttonopen.pack(side=LEFT)
-        buttonopen.bind("<Enter>", lambda event, arg="Open a .csv transmission data file from local. ": mouseon(event, arg))
-        buttonopen.bind("<Leave>", mouseleave)
+        widget_instructions(buttonopen, "Open a .csv transmission data file from local. ")
 
         buttonload3 = Button(self.frame0, text="Open From SQL",
                              command=self.openfromsql, highlightbackground='#262626', width=12)
         buttonload3.pack(side=LEFT)
-        buttonload3.bind("<Enter>", lambda event, arg="Open a data file from MySQL database. ": mouseon(event, arg))
-        buttonload3.bind("<Leave>", mouseleave)
+        widget_instructions(buttonload3, "Open a data file from MySQL database. ")
 
         buttonload2 = Button(self.frame0, text="(L)oad Structure",
                              command=self.load_structure, highlightbackground='#262626', width=12)
         buttonload2.pack(side=LEFT)
-        buttonload2.bind("<Enter>", lambda event, arg="Load existing layer structure. ": mouseon(event, arg))
-        buttonload2.bind("<Leave>", mouseleave)
+        widget_instructions(buttonload2, "Load existing layer structure. ")
 
         buttonshowtrans = Button(self.frame0, text="(S)how Trans",
                             command=self.show_fringes, highlightbackground='#262626', width=10)
         buttonshowtrans.pack(side=RIGHT)
-        buttonshowtrans.bind("<Enter>", lambda event, arg="Calculate transmission curve "
-                                                         "based on layer structure.": mouseon(event, arg))
-        buttonshowtrans.bind("<Leave>", mouseleave)
+        widget_instructions(buttonshowtrans, "Calculate transmission curve based on layer structure.")
 
         buttonfringes = Button(self.frame0, text="(F)it Trans",
                                command=self.fit_fringes, highlightbackground='#262626', width=8)
         buttonfringes.pack(side=RIGHT)
-        buttonfringes.bind("<Enter>", lambda event, arg="Fit calculated transmission curve "
-                                                         "with real data.": mouseon(event, arg))
-        buttonfringes.bind("<Leave>", mouseleave)
+        widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
         buttoncal = Button(self.frame0, text="Cal (a)",
                            command=self.cal_absorption, highlightbackground='#262626', width=5)
         buttoncal.pack(side=RIGHT)
-        buttoncal.bind("<Enter>", lambda event, arg="Calculate absorption coefficient "
-                                                         "for the whole wavenumber range.": mouseon(event, arg))
-        buttoncal.bind("<Leave>", mouseleave)
+        widget_instructions(buttoncal, "Calculate absorption coefficient for the whole wavenumber range.")
 
         buttonmct = Button(self.frame0, text="MCT a",
                            command=self.cal_MCT_absorption, highlightbackground='#262626', width=5)
         buttonmct.pack(side=RIGHT)
-        buttonmct.bind("<Enter>", lambda event, arg="Show theoretical modelings of "
-                                                         "MCT absorption coefficient.": mouseon(event, arg))
-        buttonmct.bind("<Leave>", mouseleave)
+        widget_instructions(buttonmct, "Show theoretical modelings of MCT absorption coefficient.")
 
         buttonsave2 = Button(self.frame0, text="Save Structure",
                              command=self.save_structure, highlightbackground='#262626', width=12)
         buttonsave2.pack(side=RIGHT)
-        buttonsave2.bind("<Enter>", lambda event, arg="Save the present structure to file.": mouseon(event, arg))
-        buttonsave2.bind("<Leave>", mouseleave)
+        widget_instructions(buttonsave2, "Save the present structure to file.")
 
         buttonsave = Button(self.frame0, text="Save result",
                             command=self.savetofile, highlightbackground='#262626', width=9)
         buttonsave.pack(side=RIGHT)
-        buttonsave.bind("<Enter>", lambda event, arg="Save calculation result to .csv file.": mouseon(event, arg))
-        buttonsave.bind("<Leave>", mouseleave)
+        widget_instructions(buttonsave, "Save calculation result to .csv file.")
 
         self.buttonabort = Button(self.frame0, text="ABORT", fg="Red",
                                   command=self.Abort_mission, highlightbackground='#262626', width=5)
-        self.buttonabort.bind("<Enter>", lambda event, arg="Abort the current calculation in progress.": mouseon(event, arg))
-        self.buttonabort.bind("<Leave>", mouseleave)
+        widget_instructions(self.buttonabort, "Abort the current calculation in progress.")
 
         self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=100)
         self.filepath.pack(side=LEFT, fill=X)
@@ -1289,9 +1275,6 @@ class FTIR_fittingtool_GUI(Frame):
 
         LABEL_WIDTH = 13
         self.hld = 0
-
-        # seperateline = Label(self.frame3, text='-'*40, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
-        # seperateline.grid(row=9, column=0, columnspan=4)
 
         def change_sub(*args):
             if self.varsub.get() == "CdTe/Si":
@@ -1476,13 +1459,139 @@ class FTIR_fittingtool_GUI(Frame):
                                      highlightbackground='#2b2b2b', width=12)
         self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
 
-        self.buttonaddlayer.bind("<Enter>", lambda event, arg="Add one more layer on top of the current structure. "
-                                                              "22 layers maximum. ": mouseon(event, arg))
-        self.buttonaddlayer.bind("<Leave>", mouseleave)
+        widget_instructions(self.buttonaddlayer, "Add one more layer on top of the current structure. Max 22 layers. ")
 
         self.frame4 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame4.pack(side=TOP, fill=X, expand=True)
         self.frame4.pack_propagate(0)
+
+        def wavelength_calculator(event):
+            calculatorwindow = Toplevel()
+            w2 = 260  # width for the window
+            h2 = 120  # height for the window
+            ws = root.winfo_screenwidth()  # width of the screen
+            hs = root.winfo_screenheight()  # height of the screen
+            # calculate x and y coordinates for the Tk root window
+            x2 = (ws / 2) - (w2 / 2)
+            y2 = (hs / 4) - (h2 / 4)
+            # set the dimensions of the screen
+            # and where it is placed
+            calculatorwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
+            calculatorwindow.wm_title("Mini Calculator")
+            calculatorwindow.configure(background='#2b2b2b')
+            calculatorwindow.attributes('-topmost', 'true')
+            # guesswindow.grab_set()
+
+            Label(calculatorwindow, text='WaveNum(cm\u207B\u00B9):',
+                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
+            Label(calculatorwindow, text='Wavelength(\u03BCm):',
+                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=1, column=0, columnspan=1, sticky=E)
+            Label(calculatorwindow, text='Energy(meV):',
+                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=2, column=0, columnspan=1, sticky=E)
+            Label(calculatorwindow, text='MCT x:', fg="#a9b7c6", bg='#2b2b2b',
+                  width=LABEL_WIDTH, anchor=E).grid(row=3, column=0, columnspan=1, sticky=E)
+            entry_c1 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
+            entry_c2 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
+            entry_c3 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
+            entry_c4 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
+            entry_c1.grid(row=0, column=1)
+            entry_c2.grid(row=1, column=1)
+            entry_c3.grid(row=2, column=1)
+            entry_c4.grid(row=3, column=1)
+            entry_c1.insert(0, 0)
+            entry_c2.insert(0, 0)
+            entry_c3.insert(0, 0)
+            entry_c4.insert(0, 0)
+
+            allpara = [0, 0, 0, 0]
+            self.addlog("Log from mini calculator:")
+
+            def calculate_event(event):
+                nonlocal allpara
+
+                def input_para(value, entry, lower_limit, upper_limit, default=0):
+                    if len(entry.get()) != 0:
+                        if float(value) != float(entry.get()):
+                            if float(entry.get()) < lower_limit or float(entry.get()) > upper_limit:
+                                self.addlog('Invalid input! Range({},{})'.format(lower_limit, upper_limit))
+                                entry.delete(0, END)
+                                entry.insert(0, default)
+                                return False
+                            return True
+
+                def find_x(Energy):  # Find x knowing cutoff energy E
+                    x = 0
+                    Delta = 100
+                    while Delta > 0.0001:
+                        Delta = Energy - (
+                                (-.302 + 1.93 * x + 5.35 * .0001 * Temp * (
+                                            1 - 2 * x) - .81 * x * x + .832 * x * x * x) * 1000)
+                        x = x + 0.00001
+                        if x > 1:
+                            return 'N/A'
+                    return x
+                        
+                Temp = self.Temp
+                wn = 0
+                wl = 0
+                E = 0
+                x = 0
+
+                if input_para(allpara[0], entry_c1, 0, 50000, 0):
+                    wn = float(entry_c1.get())
+                    wl = 10000 / wn
+                    E = 4.13566743 * 3 * 100 / wl
+                    x = find_x(E)
+                    self.addlog('Wavenumber changed. Temperature = {}K.'.format(self.Temp))
+
+                elif input_para(allpara[1], entry_c2, 0, 30, 0):
+                    wl = float(entry_c2.get())
+                    wn = 10000 / wl
+                    E = 4.13566743 * 3 * 100 / wl
+                    x = find_x(E)
+                    self.addlog('Wavelength changed. Temperature = {}K.'.format(self.Temp))
+
+                elif input_para(allpara[2], entry_c3, 0, 10000, 0):
+                    E = float(entry_c3.get())
+                    wl = 4.13566743 * 3 * 100 / E
+                    wn = 10000 / wl
+                    x = find_x(E)
+                    self.addlog('Energy changed. Temperature = {}K.'.format(self.Temp))
+
+                elif input_para(allpara[3], entry_c4, 0, 1, 0):
+                    x = float(entry_c4.get())
+                    E = (-.302 + 1.93 * x + 5.35 * .0001 * Temp * (
+                            1 - 2 * x) - .81 * x * x + .832 * x * x * x) * 1000
+                    wl = 4.13566743 * 3 * 100 / E
+                    wn = 10000 / wl
+                    self.addlog('Composition changed. Temperature = {}K.'.format(self.Temp))
+
+                allpara[0] = "%.4f" % wn
+                allpara[1] = "%.4f" % wl
+                allpara[2] = "%.4f" % E
+                try:
+                    allpara[3] = "%.4f" % x
+                except TypeError:
+                    allpara[3] = x
+
+                entry_c1.delete(0, END)
+                entry_c1.insert(0, allpara[0])
+                entry_c2.delete(0, END)
+                entry_c2.insert(0, allpara[1])
+                entry_c3.delete(0, END)
+                entry_c3.insert(0, allpara[2])
+                entry_c4.delete(0, END)
+                entry_c4.insert(0, allpara[3])
+
+            def _delete_window():
+                self.addlog('*' * 60)
+                try:
+                    calculatorwindow.destroy()
+                except:
+                    pass
+
+            calculatorwindow.bind('<Return>', calculate_event)
+            calculatorwindow.protocol("WM_DELETE_WINDOW", _delete_window)
 
         Label(self.frame4, text='WaveNum(cm\u207B\u00B9):',
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
@@ -1490,8 +1599,20 @@ class FTIR_fittingtool_GUI(Frame):
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=2, columnspan=1, sticky=E)
         Label(self.frame4, text='Energy(meV):',
               fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 2, anchor=E).grid(row=0, column=4, columnspan=1, sticky=E)
-        Label(self.frame4, text='MCT x:',
-              fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 4, anchor=E).grid(row=0, column=6, columnspan=1, sticky=E)
+
+        def mouseon_red(event, label):
+            label.config(fg="red")
+            self.status1.config(text="Click to open a mini calculator for wavenumber, wavelength, energy and x.")
+
+        def mouseleave_red(event, label):
+            label.config(fg="#a9b7c6")
+            self.status1.config(text=self.text)
+
+        label_comp = Label(self.frame4, text='MCT x:', fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 4, anchor=E)
+        label_comp.grid(row=0, column=6, columnspan=1, sticky=E)
+        label_comp.bind("<Button-1>", wavelength_calculator)
+        label_comp.bind("<Enter>", lambda event, arg=label_comp: mouseon_red(event, arg))
+        label_comp.bind("<Leave>", lambda event, arg=label_comp: mouseleave_red(event, arg))
 
         self.wavenumber1 = Label(self.frame4, text='{}'.format(self.wavenumber), fg="#a9b7c6", bg='#2b2b2b', width=8,
                                  anchor=W)
@@ -1538,9 +1659,7 @@ class FTIR_fittingtool_GUI(Frame):
                           command=getbutton31, highlightbackground='#2b2b2b', anchor=W, width=3)
         button31.grid(row=0, column=2, sticky=W)
 
-        button31.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
-                                                   "got from the graph above. ": mouseon(event, arg))
-        button31.bind("<Leave>", mouseleave)
+        widget_instructions(button31, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
         def getbutton32():
             self.entry_32.delete(0, END)
@@ -1549,9 +1668,7 @@ class FTIR_fittingtool_GUI(Frame):
         button32 = Button(self.frame2, text="Get",
                           command=getbutton32, highlightbackground='#2b2b2b', anchor=W, width=3)
         button32.grid(row=1, column=2, sticky=W)
-        button32.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
-                                                   "got from the graph above. ": mouseon(event, arg))
-        button32.bind("<Leave>", mouseleave)
+        widget_instructions(button32, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
         def getbutton33():
             self.entry_33.delete(0, END)
@@ -1560,9 +1677,7 @@ class FTIR_fittingtool_GUI(Frame):
         button33 = Button(self.frame2, text="Get",
                           command=getbutton33, highlightbackground='#2b2b2b', anchor=W, width=3)
         button33.grid(row=0, column=5, sticky=W)
-        button33.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
-                                                   "got from the graph above. ": mouseon(event, arg))
-        button33.bind("<Leave>", mouseleave)
+        widget_instructions(button33, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
         def getbutton332():
             self.entry_332.delete(0, END)
@@ -1571,9 +1686,7 @@ class FTIR_fittingtool_GUI(Frame):
         button332 = Button(self.frame2, text="Get",
                            command=getbutton332, highlightbackground='#2b2b2b', anchor=W, width=3)
         button332.grid(row=1, column=5, sticky=W)
-        button332.bind("<Enter>", lambda event, arg="Fill in the entry using the coordinate(click to choose) "
-                                                   "got from the graph above. ": mouseon(event, arg))
-        button332.bind("<Leave>", mouseleave)
+        widget_instructions(button332, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
         def CUT():
             self.lowercut = float(self.entry_31.get())
@@ -1600,50 +1713,43 @@ class FTIR_fittingtool_GUI(Frame):
         button34 = Button(self.frame2, text="Zoom all",
                           command=zoomall, highlightbackground='#2b2b2b', width=8)
         button34.grid(row=0, column=6)
-        button34.bind("<Enter>", lambda event, arg="Zoom out the graph to original boundaries. ": mouseon(event, arg))
-        button34.bind("<Leave>", mouseleave)
+        widget_instructions(button34, "Zoom out the graph to original boundaries. ")
 
         button35 = Button(self.frame2, text="CUT",
                           command=CUT, highlightbackground='#2b2b2b', width=8)
         button35.grid(row=1, column=6, sticky=W)
-        button35.bind("<Enter>", lambda event, arg="Trim the graph using the numbers on the left.": mouseon(event, arg))
-        button35.bind("<Leave>", mouseleave)
+        widget_instructions(button35, "Trim the graph using the numbers on the left.")
 
         label_21 = Label(self.frame2, text='Scale %', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_21.grid(row=0, column=7, columnspan=1, sticky=E)
         self.entry_21 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_21.grid(row=0, column=8)
         self.entry_21.insert(0, "0.7")
-        label_21.bind("<Enter>", lambda event, arg="Fitting parameter to represent the percentage of light passing"
-                                                   " through the initial air-layers surface.": mouseon(event, arg))
-        label_21.bind("<Leave>", mouseleave)
+        widget_instructions(label_21, "Fitting parameter to represent the percentage of light passing"
+                                                   " through the initial air-layers surface.")
 
         label_22 = Label(self.frame2, text='Angle:', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_22.grid(row=1, column=7, columnspan=1, sticky=E)
         self.entry_22 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_22.grid(row=1, column=8)
         self.entry_22.insert(0, "0.0")
-        label_22.bind("<Enter>", lambda event, arg="Angle of incident light(in radius unit). "
-                                                   "0 by default(Normal incidence).": mouseon(event, arg))
-        label_22.bind("<Leave>", mouseleave)
+        widget_instructions(label_22, "Angle of incident light(in radius unit). 0 by default(Normal incidence).")
 
         label_23 = Label(self.frame2, text='CdTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_23.grid(row=0, column=9, columnspan=1, sticky=E)
         self.entry_23 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_23.grid(row=0, column=10)
         self.entry_23.insert(0, "0.0")
-        label_23.bind("<Enter>", lambda event, arg="Fitting parameter to represent the CdTe thickness difference "
-                                                   "between real value and designed value.": mouseon(event, arg))
-        label_23.bind("<Leave>", mouseleave)
+        widget_instructions(label_23, "Fitting parameter to represent the CdTe thickness difference "
+                                                   "between real value and designed value.")
 
         label_24 = Label(self.frame2, text='HgTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
         label_24.grid(row=1, column=9, columnspan=1, sticky=E)
         self.entry_24 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
         self.entry_24.grid(row=1, column=10)
         self.entry_24.insert(0, "0.0")
-        label_24.bind("<Enter>", lambda event, arg="Fitting parameter to represent the HgTe thickness difference "
-                                                   "between real value and designed value.": mouseon(event, arg))
-        label_24.bind("<Leave>", mouseleave)
+        widget_instructions(label_24, "Fitting parameter to represent the HgTe thickness difference "
+                                      "between real value and designed value.")
 
         self.intial_thicknesses_or_not = 1
         self.entry_d_list_initial = []
@@ -1651,6 +1757,7 @@ class FTIR_fittingtool_GUI(Frame):
         button_21 = Button(self.frame2, text="Set",
                            command=self.setoffsets, highlightbackground='#2b2b2b', anchor=W, width=3)
         button_21.grid(row=1, column=11, sticky=W)
+        widget_instructions(button_21, "Apply the offsets to selected layers based on HgTe/CdTe compositions.")
 
         self.frame1 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
         self.frame1.pack(side=TOP, fill=BOTH, expand=True)
@@ -1734,7 +1841,7 @@ class FTIR_fittingtool_GUI(Frame):
 
     def help(self):
         if self.needmorehelp == 0:
-            self.addlog("FTIR fitting tool v{}. With customization of layer structures. ".format(__version__))
+            self.addlog("FTIR fitting tool, with customization of layer structures. v{}. ".format(__version__))
             self.addlog('Open a FTIR transmission .csv file, then customize your layer structure on the right. '
                         'You can load or save a structure from file.')
             self.addlog('Click "Show Trans" to see the result. ')
@@ -1775,7 +1882,7 @@ class FTIR_fittingtool_GUI(Frame):
 
             scrollbarhelp.config(command=helplines.yview)
 
-            helplines.insert(END, "FTIR fitting tool v{}. With customization of layer structures. ".format(__version__))
+            helplines.insert(END, "FTIR fitting tool, with customization of layer structures. v{}.  ".format(__version__))
             helplines.insert(END, '\n\nFor any questions or sugguestions please contact {}.'.format(__emailaddress__))
 
             helplines.insert(END, '\n\nBasic concept:')
@@ -1799,10 +1906,6 @@ class FTIR_fittingtool_GUI(Frame):
                                   'While fitting fringes use pure theory and measured refraction index, '
                                   'fitting curoff curve is semi-classical. The fitting parameters could change. ')
 
-            helplines.insert(END, '\nWarning: Killing a thread task(show transmission, fit transmission '
-                                  'or calculate absorption) while it is running is dangerous. Right now it can only '
-                                  'be done using "Clear" function. The negative consequences are unknown. ')
-
             helplines.insert(END, '\n\nHot keys:')
             if _platform == "darwin":
                 helplines.insert(END, '\n   ⌘+O: Open .csv data file.')
@@ -1819,6 +1922,7 @@ class FTIR_fittingtool_GUI(Frame):
 
             helplines.insert(END, '\n\nUpdate Log:')
             helplines.insert(END, '\nv. 2.57:')
+            helplines.insert(END, '\n   Added wavenumber/wavelength/energy/composition calculator. ')
             helplines.insert(END, '\n   Optimized coding for faster calculation. ')
             helplines.insert(END, '\n   Added "Load background" warning for opening file from SQL. ')
             helplines.insert(END, '\nv. 2.56:')
@@ -2955,14 +3059,35 @@ def main():
         # guesswindow.grab_set()
         guessnumbers.guessnumbers_GUI(guesswindow, guesswindow, listbox)
 
+        listbox.insert(END, '*' * 60)
+        listbox.yview(END)
+
+        def _delete_window():
+            listbox.insert(END, '*' * 60)
+            listbox.yview(END)
+            try:
+                guesswindow.destroy()
+            except:
+                pass
+
+        guesswindow.protocol("WM_DELETE_WINDOW", _delete_window)
+
     # Status bar #
     statusbar = Frame(root, bg='#2b2b2b', bd=1, relief=RIDGE)
+
+    def mouseon_blue(event, label):
+        label.config(fg="deep sky blue")
+
+    def mouseleave_blue(event, label):
+        label.config(fg="#a9b7c6")
 
     authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE,
                         padx=4.2, width=21)
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
     authorLabel.bind("<Button-1>", guessanumber)
+    authorLabel.bind("<Enter>", lambda event, arg=authorLabel: mouseon_blue(event, arg))
+    authorLabel.bind("<Leave>", lambda event, arg=authorLabel: mouseleave_blue(event, arg))
 
     status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg='#a9b7c6', bg='#2b2b2b',
                     bd=1, relief=RIDGE)

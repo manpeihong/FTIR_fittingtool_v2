@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.57
+# FTIR_fittingtool_v2.57b
 The second generation of FTIR data fitting tool. 
 
 NOTE! Starting from v2.54, PyQtChart and mysqlclient are required to run the program. 
@@ -31,6 +31,8 @@ Special Thanks: Dr. Yong Chang.
 Update log: 
 
 v2.57:
+
+Added wavenumber/wavelength/energy/composition calculator.
 
 Optimized coding for faster calculation.
 
