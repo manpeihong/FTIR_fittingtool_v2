@@ -2112,7 +2112,6 @@ class FTIR_fittingtool_GUI(Frame):
         try:
             thefitline.pop(0).remove()
         except (AttributeError, IndexError) as error:
-            self.addlog("check")
             pass
 
     def plot_and_show(self, theplot, fitline, remove_fitline_or_not, x, y, color, thelabel, ylabel, legend_or_not, legend_location):
