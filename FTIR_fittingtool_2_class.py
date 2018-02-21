@@ -2281,7 +2281,7 @@ class FTIR_fittingtool_GUI(Frame):
         """Save calculated Transmission/Reflection/Absorption to file."""
 
         if self.peakvalues_fit ==[]:
-            self.addlog("No data can be saved. ")
+            self.addlog("There is nothing to save. ")
             return
 
         saveascsv = filedialog.asksaveasfilename(defaultextension='.csv')
@@ -2468,6 +2468,10 @@ class FTIR_fittingtool_GUI(Frame):
     def save_structure(self):
 
         """Save the customized structure to file. This is the best way to create structure files."""
+
+        if self.layernumber == 0:
+            self.addlog("There is nothing to save.")
+            return
 
         saveascsv = filedialog.asksaveasfilename(defaultextension='.CSV')
         if saveascsv is None:
@@ -2862,7 +2866,7 @@ class FTIR_fittingtool_GUI(Frame):
 
         methodnamegetoption = OptionMenu(call_MCT_choosewindow, methodnameget, "Chu", "Schacham and Finkman", "Yong")
         # '*'  to receive each list item as a separate parameter.
-        methodnamegetoption.config(bg=self.bg)
+        methodnamegetoption.config(bg=self.bg, highlightthickness=0)
         methodnamegetoption.config(width=24)
         methodnamegetoption["menu"].config(bg=self.bg)
         methodnamegetoption.grid(row=1, column=0, columnspan=2)
@@ -2898,10 +2902,11 @@ class FTIR_fittingtool_GUI(Frame):
                                                          self.colororders2[self.numberofdata2], '',
                                                          'Absorption Coefficient ($cm^{-1}$)', 0, 'upper right')
 
-            self.numberofdata2 += 1
-
             self.addlog("Showing MCT abosorption curve "
-                        "for x = {} at {}K using {}'s formula.".format(float(entry_x.get()), self.Temp, methodnameget.get()))
+                        "for x = {} at {}K using {}'s formula. ({})".format(float(entry_x.get()), self.Temp,
+                                                                            methodnameget.get(),
+                                                                            self.colororders2[self.numberofdata2]))
+            self.numberofdata2 += 1
 
             call_MCT_choosewindow.grab_release()
             self.masterroot.focus_set()
