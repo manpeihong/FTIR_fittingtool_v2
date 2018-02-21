@@ -17,8 +17,39 @@ import cross_platform_config
 from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
-__version__ = '2.57b'
+__version__ = '2.58'
 __emailaddress__ = "pman3@uic.edu"
+
+
+class color_theme:
+    theme = 0   # change this number to change the theme
+    if theme == 0:  # Dark: Default theme
+        bg = "#2b2b2b"
+        fg = "#a9b7c6"
+        bg_toolbar = '#262626'
+        bg_log = '#393c43'
+    elif theme == 1:    # Light
+        bg = "whitesmoke"
+        fg = "dimgrey"
+        bg_toolbar = 'gainsboro'
+        bg_log = 'darkgrey'
+    elif theme == 2:    # Royale
+        bg = "orangered"
+        fg = "white"
+        bg_toolbar = 'gold'
+        bg_log = 'gold'
+
+    elif theme == 3:    # Skyblue
+        bg = "lightskyblue"
+        fg = "white"
+        bg_toolbar = 'dodgerblue'
+        bg_log = 'cornflowerblue'
+
+    elif theme == 4:    # Creamy
+        bg = "papayawhip"
+        fg = "gray"
+        bg_toolbar = 'orange'
+        bg_log = 'khaki'
 
 
 class FIT_FTIR:
@@ -1083,7 +1114,7 @@ class ThreadedTask_fringes(threading.Thread):
 
 class FTIR_fittingtool_GUI(Frame):
     def __init__(self, root, masterroot, listbox, statusbar, status1, status2):
-        super().__init__(root, width=cross_platform_config.config.FRAME_WIDTH, bg='#2b2b2b')
+        super().__init__(root, width=cross_platform_config.config.FRAME_WIDTH, bg="#2b2b2b")
         self.root = root
         self.masterroot = masterroot
         self.listbox = listbox
@@ -1153,7 +1184,20 @@ class FTIR_fittingtool_GUI(Frame):
         self.COLUMN1_WIDTH = 3
         self.COLUMN2_WIDTH = 8
 
-        self.frame0 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH, height=20, bg='#262626', bd=1)
+        self.hld = 0
+
+        # Set the color scheme for the frame
+        self.bg = color_theme.bg
+        self.fg = color_theme.fg
+        self.bg_toolbar = color_theme.bg_toolbar
+
+        self.argu_fgbg = {'fg': self.fg, 'bg': self.bg}
+        self.argu_entry1 = {'highlightbackground': self.bg, 'width': self.COLUMN1_WIDTH,
+                            'highlightthickness': self.hld, 'borderwidth': 0}
+        self.argu_entry2 = {'highlightbackground': self.bg, 'width': self.COLUMN2_WIDTH,
+                            'highlightthickness': self.hld, 'borderwidth': 0}
+
+        self.frame0 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH, height=20, bg=self.bg_toolbar, bd=1)
         self.frame0.pack(side=TOP, fill=X, expand=True)
         self.frame0.pack_propagate(0)
 
@@ -1170,111 +1214,125 @@ class FTIR_fittingtool_GUI(Frame):
             widget.bind("<Leave>", mouseleave)
 
         buttonsettings = Button(self.frame0, text="Settings",
-                            command=self.settings, highlightbackground='#262626', width=7)
+                            command=self.settings, highlightbackground=self.bg_toolbar, width=7)
         buttonsettings.pack(side=LEFT)
         widget_instructions(buttonsettings, "Global Settings including Temperature.")
 
         buttonclear = Button(self.frame0, text="Clear",
-                             command=self.clearalldata, highlightbackground='#262626', width=5)
+                             command=self.clearalldata, highlightbackground=self.bg_toolbar, width=5)
         buttonclear.pack(side=LEFT)
         widget_instructions(buttonclear, "Clear all data including graphs and layer structures.")
 
         buttonopen = Button(self.frame0, text='(O)pen',
-                            command=self.openfromfile, highlightbackground='#262626', width=5)
+                            command=self.openfromfile, highlightbackground=self.bg_toolbar, width=5)
         buttonopen.pack(side=LEFT)
         widget_instructions(buttonopen, "Open a .csv transmission data file from local. ")
 
         buttonload3 = Button(self.frame0, text="Open From SQL",
-                             command=self.openfromsql, highlightbackground='#262626', width=12)
+                             command=self.openfromsql, highlightbackground=self.bg_toolbar, width=12)
         buttonload3.pack(side=LEFT)
         widget_instructions(buttonload3, "Open a data file from MySQL database. ")
 
         buttonload2 = Button(self.frame0, text="(L)oad Structure",
-                             command=self.load_structure, highlightbackground='#262626', width=12)
+                             command=self.load_structure, highlightbackground=self.bg_toolbar, width=12)
         buttonload2.pack(side=LEFT)
         widget_instructions(buttonload2, "Load existing layer structure. ")
 
         buttonshowtrans = Button(self.frame0, text="(S)how Trans",
-                            command=self.show_fringes, highlightbackground='#262626', width=10)
+                            command=self.show_fringes, highlightbackground=self.bg_toolbar, width=10)
         buttonshowtrans.pack(side=RIGHT)
         widget_instructions(buttonshowtrans, "Calculate transmission curve based on layer structure.")
 
         buttonfringes = Button(self.frame0, text="(F)it Trans",
-                               command=self.fit_fringes, highlightbackground='#262626', width=8)
+                               command=self.fit_fringes, highlightbackground=self.bg_toolbar, width=8)
         buttonfringes.pack(side=RIGHT)
         widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
         buttoncal = Button(self.frame0, text="Cal (a)",
-                           command=self.cal_absorption, highlightbackground='#262626', width=5)
+                           command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
         buttoncal.pack(side=RIGHT)
         widget_instructions(buttoncal, "Calculate absorption coefficient for the whole wavenumber range.")
 
         buttonmct = Button(self.frame0, text="MCT a",
-                           command=self.cal_MCT_absorption, highlightbackground='#262626', width=5)
+                           command=self.cal_MCT_absorption, highlightbackground=self.bg_toolbar, width=5)
         buttonmct.pack(side=RIGHT)
         widget_instructions(buttonmct, "Show theoretical modelings of MCT absorption coefficient.")
 
         buttonsave2 = Button(self.frame0, text="Save Structure",
-                             command=self.save_structure, highlightbackground='#262626', width=12)
+                             command=self.save_structure, highlightbackground=self.bg_toolbar, width=12)
         buttonsave2.pack(side=RIGHT)
         widget_instructions(buttonsave2, "Save the present structure to file.")
 
         buttonsave = Button(self.frame0, text="Save result",
-                            command=self.savetofile, highlightbackground='#262626', width=9)
+                            command=self.savetofile, highlightbackground=self.bg_toolbar, width=9)
         buttonsave.pack(side=RIGHT)
         widget_instructions(buttonsave, "Save calculation result to .csv file.")
 
         self.buttonabort = Button(self.frame0, text="ABORT", fg="Red",
-                                  command=self.Abort_mission, highlightbackground='#262626', width=5)
+                                  command=self.Abort_mission, highlightbackground=self.bg_toolbar, width=5)
         widget_instructions(self.buttonabort, "Abort the current calculation in progress.")
 
-        self.filepath = Label(self.frame0, text="", bg='#262626', fg="#a9b7c6", width=100)
+        self.filepath = Label(self.frame0, text="", fg=self.fg, bg=self.bg_toolbar, width=150)
         self.filepath.pack(side=LEFT, fill=X)
+        self.hidingtoolbar = 0
+
+        def reveal_toolbar():
+            if self.hidingtoolbar == 1:
+                self.filepath.pack_forget()
+                buttonsettings.pack(side=LEFT)
+                buttonclear.pack(side=LEFT)
+                buttonopen.pack(side=LEFT)
+                buttonload3.pack(side=LEFT)
+                buttonload2.pack(side=LEFT)
+                buttonshowtrans.pack(side=RIGHT)
+                buttonfringes.pack(side=RIGHT)
+                buttoncal.pack(side=RIGHT)
+                buttonmct.pack(side=RIGHT)
+                buttonsave2.pack(side=RIGHT)
+                buttonsave.pack(side=RIGHT)
+                if self.programbusy == 1:
+                    self.buttonabort.pack(side=RIGHT)
+                self.filepath.pack(side=LEFT, fill=X)
+                self.hidingtoolbar = 0
+
+        def mouseclickfilepath(event):
+            if self.hidingtoolbar == 0:
+                buttonsettings.pack_forget()
+                buttonclear.pack_forget()
+                buttonopen.pack_forget()
+                buttonload3.pack_forget()
+                buttonload2.pack_forget()
+                buttonshowtrans.pack_forget()
+                buttonfringes.pack_forget()
+                buttoncal.pack_forget()
+                buttonmct.pack_forget()
+                buttonsave2.pack_forget()
+                buttonsave.pack_forget()
+                if self.programbusy == 1:
+                    self.buttonabort.pack_forget()
+                self.hidingtoolbar = 1
+            elif self.hidingtoolbar == 1:
+                reveal_toolbar()
 
         def mouseonfilepath(event):
-            buttonsettings.pack_forget()
-            buttonclear.pack_forget()
-            buttonopen.pack_forget()
-            buttonload3.pack_forget()
-            buttonload2.pack_forget()
-            buttonshowtrans.pack_forget()
-            buttonfringes.pack_forget()
-            buttoncal.pack_forget()
-            buttonmct.pack_forget()
-            buttonsave2.pack_forget()
-            buttonsave.pack_forget()
-            if self.programbusy == 1:
-                self.buttonabort.pack_forget()
+            self.filepath.config(fg="red")
 
         def mouseleavefilepath(event):
-            self.filepath.pack_forget()
-            buttonsettings.pack(side=LEFT)
-            buttonclear.pack(side=LEFT)
-            buttonopen.pack(side=LEFT)
-            buttonload3.pack(side=LEFT)
-            buttonload2.pack(side=LEFT)
-            buttonshowtrans.pack(side=RIGHT)
-            buttonfringes.pack(side=RIGHT)
-            buttoncal.pack(side=RIGHT)
-            buttonmct.pack(side=RIGHT)
-            buttonsave2.pack(side=RIGHT)
-            buttonsave.pack(side=RIGHT)
-            if self.programbusy == 1:
-                self.buttonabort.pack(side=RIGHT)
-            self.filepath.pack(side=LEFT, fill=X)
+            self.filepath.config(fg=self.fg)
+            reveal_toolbar()
 
+        self.filepath.bind("<Button-1>", mouseclickfilepath)
         self.filepath.bind("<Enter>", mouseonfilepath)
         self.filepath.bind("<Leave>", mouseleavefilepath)
 
-        self.frame3_shell = Frame(self, width=150, bg='#2b2b2b')
+        self.frame3_shell = Frame(self, width=150, bg=self.bg)
         self.frame3_shell.pack(side=RIGHT, fill=Y, expand=True)
         self.frame3_shell.pack_propagate(1)
-        self.frame3 = Frame(self.frame3_shell, width=150, bg='#2b2b2b')
+        self.frame3 = Frame(self.frame3_shell, width=150, bg=self.bg)
         self.frame3.pack(side=RIGHT, fill=BOTH, expand=True)
         self.frame3.pack_propagate(1)
 
         LABEL_WIDTH = 13
-        self.hld = 0
 
         def change_sub(*args):
             if self.varsub.get() == "CdTe/Si":
@@ -1284,9 +1342,9 @@ class FTIR_fittingtool_GUI(Frame):
             elif self.varsub.get() == "Air":
                 self.subtype = 3
 
-        Label(self.frame3, text='Layer:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=0, column=0, sticky=E)
-        Label(self.frame3, text='x:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1, sticky=E)
-        Label(self.frame3, text='d:', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
+        Label(self.frame3, text='Layers\u2193', **self.argu_fgbg, width=self.COLUMN0_WIDTH+2).grid(row=0, column=0, sticky=E)
+        Label(self.frame3, text='x\u2193', **self.argu_fgbg, width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1, sticky=E)
+        Label(self.frame3, text='d\u2193', **self.argu_fgbg, width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
 
         self.varsub = StringVar(self.frame3)
         self.varsub.set("Si")  # initial value
@@ -1294,14 +1352,14 @@ class FTIR_fittingtool_GUI(Frame):
         suboption1 = OptionMenu(self.frame3, self.varsub, "Si", "CdZnTe", "Air")
         suboption1.config(width=self.COLUMN0_WIDTH, anchor=E)
         if _platform == "darwin":
-            suboption1.config(bg="#2b2b2b")
+            suboption1.config(bg=self.bg)
         suboption1.grid(row=27, column=0, sticky=W+E)
 
-        self.entry_d_0 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH, highlightthickness=self.hld, borderwidth=0)
+        self.entry_d_0 = Entry(self.frame3, **self.argu_entry2)
         self.entry_d_0.grid(row=27, column=2, sticky=W+E)
         self.entry_d_0.insert(0, '500')
 
-        Label(self.frame3, text='  ', fg="#a9b7c6", bg='#2b2b2b', width=self.COLUMN0_WIDTH).grid(row=27, column=3, sticky=E)
+        Label(self.frame3, text='  ', **self.argu_fgbg, width=self.COLUMN0_WIDTH).grid(row=27, column=3, sticky=E)
 
         self.layernumber = 0
         self.layertypevar1, self.layertypevar2, self.layertypevar3, self.layertypevar4, self.layertypevar5, \
@@ -1324,99 +1382,53 @@ class FTIR_fittingtool_GUI(Frame):
               IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), IntVar(), \
               IntVar(), IntVar(), IntVar(), IntVar(), IntVar()
 
-        self.entry_x_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_x_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN1_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
+        self.entry_x_1 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_2 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_3 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_4 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_5 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_6 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_7 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_8 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_9 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_10 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_11 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_12 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_13 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_14 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_15 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_16 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_17 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_18 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_19 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_20 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_21 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_22 = Entry(self.frame3, **self.argu_entry1)
+        self.entry_x_23 = Entry(self.frame3, **self.argu_entry1)
 
-        self.entry_d_1 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_2 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_3 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_4 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_5 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_6 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_7 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_8 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_9 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                               highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_10 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_11 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_12 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_13 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_14 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_15 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_16 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_17 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_18 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_19 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_20 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_21 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_22 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
-        self.entry_d_23 = Entry(self.frame3, highlightbackground='#2b2b2b', width=self.COLUMN2_WIDTH,
-                                highlightthickness=self.hld, borderwidth=0)
+        self.entry_d_1 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_2 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_3 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_4 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_5 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_6 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_7 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_8 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_9 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_10 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_11 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_12 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_13 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_14 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_15 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_16 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_17 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_18 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_19 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_20 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_21 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_22 = Entry(self.frame3, **self.argu_entry2)
+        self.entry_d_23 = Entry(self.frame3, **self.argu_entry2)
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
@@ -1432,7 +1444,7 @@ class FTIR_fittingtool_GUI(Frame):
             layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
             layertypeoption1.config(width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
             if _platform == "darwin":
-                layertypeoption1.config(bg="#2b2b2b")
+                layertypeoption1.config(bg=self.bg)
             layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W+E, pady=0, ipady=0)
 
             getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
@@ -1448,7 +1460,7 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '0.0')
 
             checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)),
-                                    bg='#2b2b2b', highlightthickness=self.hld, borderwidth=0)
+                                    bg=self.bg, highlightthickness=self.hld, borderwidth=0)
             checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
             checkbox1.select()
 
@@ -1456,12 +1468,12 @@ class FTIR_fittingtool_GUI(Frame):
                 self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
 
         self.buttonaddlayer = Button(self.frame3, text="Add layer on top", command=add_layer_on_top,
-                                     highlightbackground='#2b2b2b', width=12)
+                                     highlightbackground=self.bg, width=12)
         self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
 
         widget_instructions(self.buttonaddlayer, "Add one more layer on top of the current structure. Max 22 layers. ")
 
-        self.frame4 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
+        self.frame4 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg=self.bg)
         self.frame4.pack(side=TOP, fill=X, expand=True)
         self.frame4.pack_propagate(0)
 
@@ -1478,22 +1490,22 @@ class FTIR_fittingtool_GUI(Frame):
             # and where it is placed
             calculatorwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
             calculatorwindow.wm_title("Mini Calculator")
-            calculatorwindow.configure(background='#2b2b2b')
+            calculatorwindow.configure(background=self.bg)
             calculatorwindow.attributes('-topmost', 'true')
             # guesswindow.grab_set()
 
             Label(calculatorwindow, text='WaveNum(cm\u207B\u00B9):',
-                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
+                  fg=self.fg, bg=self.bg, width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
             Label(calculatorwindow, text='Wavelength(\u03BCm):',
-                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=1, column=0, columnspan=1, sticky=E)
+                  fg=self.fg, bg=self.bg, width=LABEL_WIDTH, anchor=E).grid(row=1, column=0, columnspan=1, sticky=E)
             Label(calculatorwindow, text='Energy(meV):',
-                  fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=2, column=0, columnspan=1, sticky=E)
-            Label(calculatorwindow, text='MCT x:', fg="#a9b7c6", bg='#2b2b2b',
+                  fg=self.fg, bg=self.bg, width=LABEL_WIDTH, anchor=E).grid(row=2, column=0, columnspan=1, sticky=E)
+            Label(calculatorwindow, text='MCT x:', fg=self.fg, bg=self.bg,
                   width=LABEL_WIDTH, anchor=E).grid(row=3, column=0, columnspan=1, sticky=E)
-            entry_c1 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
-            entry_c2 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
-            entry_c3 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
-            entry_c4 = Entry(calculatorwindow, highlightbackground='#2b2b2b', width=LABEL_WIDTH)
+            entry_c1 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
+            entry_c2 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
+            entry_c3 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
+            entry_c4 = Entry(calculatorwindow, highlightbackground=self.bg, width=LABEL_WIDTH)
             entry_c1.grid(row=0, column=1)
             entry_c2.grid(row=1, column=1)
             entry_c3.grid(row=2, column=1)
@@ -1594,50 +1606,50 @@ class FTIR_fittingtool_GUI(Frame):
             calculatorwindow.protocol("WM_DELETE_WINDOW", _delete_window)
 
         Label(self.frame4, text='WaveNum(cm\u207B\u00B9):',
-              fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
+              **self.argu_fgbg, width=LABEL_WIDTH, anchor=E).grid(row=0, column=0, columnspan=1, sticky=E)
         Label(self.frame4, text='Wavelength(\u03BCm):',
-              fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH, anchor=E).grid(row=0, column=2, columnspan=1, sticky=E)
+              **self.argu_fgbg, width=LABEL_WIDTH, anchor=E).grid(row=0, column=2, columnspan=1, sticky=E)
         Label(self.frame4, text='Energy(meV):',
-              fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 2, anchor=E).grid(row=0, column=4, columnspan=1, sticky=E)
+              **self.argu_fgbg, width=LABEL_WIDTH - 2, anchor=E).grid(row=0, column=4, columnspan=1, sticky=E)
 
         def mouseon_red(event, label):
             label.config(fg="red")
             self.status1.config(text="Click to open a mini calculator for wavenumber, wavelength, energy and x.")
 
         def mouseleave_red(event, label):
-            label.config(fg="#a9b7c6")
+            label.config(fg=self.fg)
             self.status1.config(text=self.text)
 
-        label_comp = Label(self.frame4, text='MCT x:', fg="#a9b7c6", bg='#2b2b2b', width=LABEL_WIDTH - 4, anchor=E)
+        label_comp = Label(self.frame4, text='MCT x:', **self.argu_fgbg, width=LABEL_WIDTH - 4, anchor=E)
         label_comp.grid(row=0, column=6, columnspan=1, sticky=E)
         label_comp.bind("<Button-1>", wavelength_calculator)
         label_comp.bind("<Enter>", lambda event, arg=label_comp: mouseon_red(event, arg))
         label_comp.bind("<Leave>", lambda event, arg=label_comp: mouseleave_red(event, arg))
 
-        self.wavenumber1 = Label(self.frame4, text='{}'.format(self.wavenumber), fg="#a9b7c6", bg='#2b2b2b', width=8,
+        self.wavenumber1 = Label(self.frame4, text='{}'.format(self.wavenumber), **self.argu_fgbg, width=8,
                                  anchor=W)
         self.wavenumber1.grid(row=0, column=1, columnspan=1, sticky=E)
-        self.wavelength1 = Label(self.frame4, text='{}'.format(self.wavelength), fg="#a9b7c6", bg='#2b2b2b', width=8,
+        self.wavelength1 = Label(self.frame4, text='{}'.format(self.wavelength), **self.argu_fgbg, width=8,
                                  anchor=W)
         self.wavelength1.grid(row=0, column=3, columnspan=1, sticky=E)
-        self.energy1 = Label(self.frame4, text='{}'.format(self.energy), fg="#a9b7c6", bg='#2b2b2b', width=8, anchor=W)
+        self.energy1 = Label(self.frame4, text='{}'.format(self.energy), **self.argu_fgbg, width=8, anchor=W)
         self.energy1.grid(row=0, column=5, columnspan=1, sticky=E)
-        self.composition1 = Label(self.frame4, text='{}'.format(self.composition), fg="#a9b7c6", bg='#2b2b2b', width=6,
+        self.composition1 = Label(self.frame4, text='{}'.format(self.composition), **self.argu_fgbg, width=6,
                                   anchor=W)
         self.composition1.grid(row=0, column=7, columnspan=1, sticky=E)
 
-        self.frame2 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
+        self.frame2 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg=self.bg)
         self.frame2.pack(side=BOTTOM, fill=X, expand=True)
         self.frame2.pack_propagate(0)
 
-        label_31 = Label(self.frame2, text='X Lower Cut:', width=LABEL_WIDTH - 3, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
-        label_32 = Label(self.frame2, text='X Higher Cut:', width=LABEL_WIDTH - 3, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
-        label_33 = Label(self.frame2, text='Y Lower Cut:', width=LABEL_WIDTH - 3, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
-        label_332 = Label(self.frame2, text='Y Higher Cut:', width=LABEL_WIDTH - 3, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
-        self.entry_31 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
-        self.entry_32 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
-        self.entry_33 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
-        self.entry_332 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
+        label_31 = Label(self.frame2, text='X Lower Cut:', width=LABEL_WIDTH - 3, anchor=E, **self.argu_fgbg)
+        label_32 = Label(self.frame2, text='X Higher Cut:', width=LABEL_WIDTH - 3, anchor=E, **self.argu_fgbg)
+        label_33 = Label(self.frame2, text='Y Lower Cut:', width=LABEL_WIDTH - 3, anchor=E, **self.argu_fgbg)
+        label_332 = Label(self.frame2, text='Y Higher Cut:', width=LABEL_WIDTH - 3, anchor=E, **self.argu_fgbg)
+        self.entry_31 = Entry(self.frame2, highlightbackground=self.bg, width=4)
+        self.entry_32 = Entry(self.frame2, highlightbackground=self.bg, width=4)
+        self.entry_33 = Entry(self.frame2, highlightbackground=self.bg, width=4)
+        self.entry_332 = Entry(self.frame2, highlightbackground=self.bg, width=4)
         label_31.grid(row=0, column=0, columnspan=1, sticky=E)
         label_32.grid(row=1, column=0, columnspan=1, sticky=E)
         label_33.grid(row=0, column=3, columnspan=1, sticky=E)
@@ -1656,7 +1668,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.entry_31.insert(0, "%.4f" % self.xclick)
 
         button31 = Button(self.frame2, text="Get",
-                          command=getbutton31, highlightbackground='#2b2b2b', anchor=W, width=3)
+                          command=getbutton31, highlightbackground=self.bg, anchor=W, width=3)
         button31.grid(row=0, column=2, sticky=W)
 
         widget_instructions(button31, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
@@ -1666,7 +1678,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.entry_32.insert(0, "%.4f" % self.xclick)
 
         button32 = Button(self.frame2, text="Get",
-                          command=getbutton32, highlightbackground='#2b2b2b', anchor=W, width=3)
+                          command=getbutton32, highlightbackground=self.bg, anchor=W, width=3)
         button32.grid(row=1, column=2, sticky=W)
         widget_instructions(button32, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
@@ -1675,7 +1687,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.entry_33.insert(0, "%.4f" % self.yclick)
 
         button33 = Button(self.frame2, text="Get",
-                          command=getbutton33, highlightbackground='#2b2b2b', anchor=W, width=3)
+                          command=getbutton33, highlightbackground=self.bg, anchor=W, width=3)
         button33.grid(row=0, column=5, sticky=W)
         widget_instructions(button33, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
@@ -1684,7 +1696,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.entry_332.insert(0, "%.4f" % self.yclick)
 
         button332 = Button(self.frame2, text="Get",
-                           command=getbutton332, highlightbackground='#2b2b2b', anchor=W, width=3)
+                           command=getbutton332, highlightbackground=self.bg, anchor=W, width=3)
         button332.grid(row=1, column=5, sticky=W)
         widget_instructions(button332, "Fill in the entry using the coordinate(click to choose) got from the graph. ")
 
@@ -1711,41 +1723,41 @@ class FTIR_fittingtool_GUI(Frame):
             CUT()
 
         button34 = Button(self.frame2, text="Zoom all",
-                          command=zoomall, highlightbackground='#2b2b2b', width=8)
+                          command=zoomall, highlightbackground=self.bg, width=8)
         button34.grid(row=0, column=6)
         widget_instructions(button34, "Zoom out the graph to original boundaries. ")
 
         button35 = Button(self.frame2, text="CUT",
-                          command=CUT, highlightbackground='#2b2b2b', width=8)
+                          command=CUT, highlightbackground=self.bg, width=8)
         button35.grid(row=1, column=6, sticky=W)
         widget_instructions(button35, "Trim the graph using the numbers on the left.")
 
-        label_21 = Label(self.frame2, text='Scale %', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
+        label_21 = Label(self.frame2, text='Scale %', width=LABEL_WIDTH - 6, anchor=E, **self.argu_fgbg)
         label_21.grid(row=0, column=7, columnspan=1, sticky=E)
-        self.entry_21 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
+        self.entry_21 = Entry(self.frame2, highlightbackground=self.bg, width=4)
         self.entry_21.grid(row=0, column=8)
         self.entry_21.insert(0, "0.7")
         widget_instructions(label_21, "Fitting parameter to represent the percentage of light passing"
                                                    " through the initial air-layers surface.")
 
-        label_22 = Label(self.frame2, text='Angle:', width=LABEL_WIDTH - 6, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
+        label_22 = Label(self.frame2, text='Angle:', width=LABEL_WIDTH - 6, anchor=E, **self.argu_fgbg)
         label_22.grid(row=1, column=7, columnspan=1, sticky=E)
-        self.entry_22 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
+        self.entry_22 = Entry(self.frame2, highlightbackground=self.bg, width=4)
         self.entry_22.grid(row=1, column=8)
         self.entry_22.insert(0, "0.0")
         widget_instructions(label_22, "Angle of incident light(in radius unit). 0 by default(Normal incidence).")
 
-        label_23 = Label(self.frame2, text='CdTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
+        label_23 = Label(self.frame2, text='CdTe offset(%):', width=LABEL_WIDTH, anchor=E, **self.argu_fgbg)
         label_23.grid(row=0, column=9, columnspan=1, sticky=E)
-        self.entry_23 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
+        self.entry_23 = Entry(self.frame2, highlightbackground=self.bg, width=4)
         self.entry_23.grid(row=0, column=10)
         self.entry_23.insert(0, "0.0")
         widget_instructions(label_23, "Fitting parameter to represent the CdTe thickness difference "
                                                    "between real value and designed value.")
 
-        label_24 = Label(self.frame2, text='HgTe offset(%):', width=LABEL_WIDTH, anchor=E, fg="#a9b7c6", bg='#2b2b2b')
+        label_24 = Label(self.frame2, text='HgTe offset(%):', width=LABEL_WIDTH, anchor=E, **self.argu_fgbg)
         label_24.grid(row=1, column=9, columnspan=1, sticky=E)
-        self.entry_24 = Entry(self.frame2, highlightbackground='#2b2b2b', width=4)
+        self.entry_24 = Entry(self.frame2, highlightbackground=self.bg, width=4)
         self.entry_24.grid(row=1, column=10)
         self.entry_24.insert(0, "0.0")
         widget_instructions(label_24, "Fitting parameter to represent the HgTe thickness difference "
@@ -1755,11 +1767,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.entry_d_list_initial = []
 
         button_21 = Button(self.frame2, text="Set",
-                           command=self.setoffsets, highlightbackground='#2b2b2b', anchor=W, width=3)
+                           command=self.setoffsets, highlightbackground=self.bg, anchor=W, width=3)
         button_21.grid(row=1, column=11, sticky=W)
         widget_instructions(button_21, "Apply the offsets to selected layers based on HgTe/CdTe compositions.")
 
-        self.frame1 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg='#2b2b2b')
+        self.frame1 = Frame(self, width=cross_platform_config.config.FRAME_WIDTH - 150, bg=self.bg)
         self.frame1.pack(side=TOP, fill=BOTH, expand=True)
         # self.frame1.pack_propagate(0)
 
@@ -1871,13 +1883,13 @@ class FTIR_fittingtool_GUI(Frame):
             # and where it is placed
             helpwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
             helpwindow.wm_title("Help")
-            helpwindow.configure(background='#2b2b2b')
+            helpwindow.configure(background=self.bg)
 
             scrollbarhelp = Scrollbar(helpwindow)
             scrollbarhelp.pack(side=RIGHT, fill=Y)
 
             helplines = Text(helpwindow, bd=0, highlightthickness=0,
-                             bg='#2b2b2b', fg='#a9b7c6', width=550, height=650, yscrollcommand=scrollbarhelp.set)
+                             bg=self.bg, fg=self.fg, width=550, height=650, yscrollcommand=scrollbarhelp.set)
             helplines.pack(side=TOP)
 
             scrollbarhelp.config(command=helplines.yview)
@@ -1921,6 +1933,8 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.58:')
+            helplines.insert(END, '\n   Customized color theme. ')
             helplines.insert(END, '\nv. 2.57:')
             helplines.insert(END, '\n   Added wavenumber/wavelength/energy/composition calculator. ')
             helplines.insert(END, '\n   Optimized coding for faster calculation. ')
@@ -2020,40 +2034,41 @@ class FTIR_fittingtool_GUI(Frame):
         settingwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
         settingwindow.wm_title("Settings")
         # openfromfilewindow.wm_overrideredirect(True)
-        settingwindow.configure(background='#2b2b2b', takefocus=True)
+        settingwindow.configure(background=self.bg, takefocus=True)
         settingwindow.attributes('-topmost', 'true')
         settingwindow.grab_set()
 
         Label(settingwindow, text="----------------General---------------",
-              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
 
         self.blindcal_temp = IntVar()
         checkboxblindcal = Checkbutton(settingwindow, text="Do blind calculation", variable=self.blindcal_temp,
-                                bg='#2b2b2b', fg="#a9b7c6")
+                                bg=self.bg, fg=self.fg)
         checkboxblindcal.grid(row=1, column=0, columnspan=2, sticky=W)
 
         if self.blindcal == 1:
             checkboxblindcal.select()
 
-        Label(settingwindow, text="Temperature (K):", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+        Label(settingwindow, text="Temperature (K):", bg=self.bg, fg=self.fg, anchor=W)\
             .grid(row=2, column=0, sticky=W)
-        entry_s1 = Entry(settingwindow, highlightbackground='#2b2b2b', width=10)
+        entry_s1 = Entry(settingwindow, highlightbackground=self.bg, width=10)
         entry_s1.grid(row=2, column=1, sticky=W)
         entry_s1.insert(0, self.Temp)
+        entry_s1.focus_set()
 
         Label(settingwindow, text="-------------Show Fringes------------",
-              bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=3, column=0, columnspan=2, sticky=W)
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=3, column=0, columnspan=2, sticky=W)
 
         self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
         checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp,
-                                bg='#2b2b2b', fg="#a9b7c6")
+                                bg=self.bg, fg=self.fg)
         checkboxr.grid(row=4, column=0, columnspan=2, sticky=W)
 
         if self.displayreflection == 1:
             checkboxr.select()
 
         checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp,
-                                bg='#2b2b2b', fg="#a9b7c6")
+                                bg=self.bg, fg=self.fg)
         checkboxa.grid(row=5, column=0, columnspan=2, sticky=W)
 
         if self.displayabsorption== 1:
@@ -2083,10 +2098,10 @@ class FTIR_fittingtool_GUI(Frame):
             buttonOkayfuncton()
 
         buttonOK = Button(settingwindow, text="OK",
-                          command=buttonOkayfuncton, highlightbackground='#2b2b2b', width=10)
+                          command=buttonOkayfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=6, column=0, columnspan=1)
         buttonOK = Button(settingwindow, text="Cancel",
-                          command=buttonCancelfuncton, highlightbackground='#2b2b2b', width=10)
+                          command=buttonCancelfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=6, column=1, columnspan=1)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
@@ -2303,11 +2318,11 @@ class FTIR_fittingtool_GUI(Frame):
         openfromfilewindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
         openfromfilewindow.wm_title("Load layer Structure")
         # openfromfilewindow.wm_overrideredirect(True)
-        openfromfilewindow.configure(background='#2b2b2b', takefocus=True)
+        openfromfilewindow.configure(background=self.bg, takefocus=True)
         openfromfilewindow.attributes('-topmost', 'true')
         openfromfilewindow.grab_set()
 
-        Label(openfromfilewindow, text="Existing Structure:", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+        Label(openfromfilewindow, text="Existing Structure:", bg=self.bg, fg=self.fg, anchor=W)\
             .grid(row=0, column=0, columnspan=1, sticky=W)
 
         Structurenameget = StringVar(openfromfilewindow)
@@ -2318,9 +2333,10 @@ class FTIR_fittingtool_GUI(Frame):
         Structurenamegetoption = OptionMenu(openfromfilewindow, Structurenameget, *filelist)
         # '*'  to receive each list item as a separate parameter.
         if _platform == "darwin":
-            Structurenamegetoption.config(bg='#2b2b2b')
+            Structurenamegetoption.config(bg=self.bg, highlightthickness=0)
+
         Structurenamegetoption.config(width=24)
-        #Structurenamegetoption["menu"].config(bg='#2b2b2b')
+        #Structurenamegetoption["menu"].config(bg=self.bg)
         Structurenamegetoption.grid(row=1, column=0, columnspan=2)
         # Samplenamegetoption.grab_set()
         Structurenamegetoption.focus_set()
@@ -2357,7 +2373,7 @@ class FTIR_fittingtool_GUI(Frame):
                                               *self.available_materials)
                 layertypeoption1.config(width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
                 if _platform == "darwin":
-                    layertypeoption1.config(bg="#2b2b2b")
+                    layertypeoption1.config(bg=self.bg)
                 layertypeoption1.grid(row=27 -self.layernumber, column=0, sticky=W+E)
 
                 getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
@@ -2367,7 +2383,7 @@ class FTIR_fittingtool_GUI(Frame):
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, d)
 
                 checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), 
-                                        bg='#2b2b2b', highlightthickness=self.hld, borderwidth=0)
+                                        bg=self.bg, highlightthickness=self.hld, borderwidth=0)
                 checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
                 if check_or_not == 1:
                     checkbox1.select()
@@ -2401,10 +2417,10 @@ class FTIR_fittingtool_GUI(Frame):
             buttonOpenfuncton()
 
         buttonOK = Button(openfromfilewindow, text="Open",
-                           command=buttonOpenfuncton, highlightbackground='#2b2b2b', width=10)
+                           command=buttonOpenfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=2, column=0, columnspan=1)
         buttonOK = Button(openfromfilewindow, text="Cancel",
-                           command=buttonCencelfuncton, highlightbackground='#2b2b2b', width=10)
+                           command=buttonCencelfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=2, column=1, columnspan=1)
         openfromfilewindow.bind('<Return>', buttonOpenfunction_event)
 
@@ -2793,11 +2809,11 @@ class FTIR_fittingtool_GUI(Frame):
         call_MCT_choosewindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
         call_MCT_choosewindow.wm_title("Choose fitting method")
         # call_MCT_choosewindow.wm_overrideredirect(True)
-        call_MCT_choosewindow.configure(background='#2b2b2b', takefocus=True)
+        call_MCT_choosewindow.configure(background=self.bg, takefocus=True)
         call_MCT_choosewindow.attributes('-topmost', 'true')
         call_MCT_choosewindow.grab_set()
 
-        Label(call_MCT_choosewindow, text="Use fitting method by:", bg='#2b2b2b', fg="#a9b7c6", anchor=W)\
+        Label(call_MCT_choosewindow, text="Use fitting method by:", bg=self.bg, fg=self.fg, anchor=W)\
             .grid(row=0, column=0, columnspan=1, sticky=W)
 
         methodnameget = StringVar(call_MCT_choosewindow)
@@ -2805,19 +2821,19 @@ class FTIR_fittingtool_GUI(Frame):
 
         methodnamegetoption = OptionMenu(call_MCT_choosewindow, methodnameget, "Chu", "Schacham and Finkman", "Yong")
         # '*'  to receive each list item as a separate parameter.
-        methodnamegetoption.config(bg='#2b2b2b')
+        methodnamegetoption.config(bg=self.bg)
         methodnamegetoption.config(width=24)
-        methodnamegetoption["menu"].config(bg='#2b2b2b')
+        methodnamegetoption["menu"].config(bg=self.bg)
         methodnamegetoption.grid(row=1, column=0, columnspan=2)
         # Samplenamegetoption.grab_set()
         methodnamegetoption.focus_set()
 
-        Label(call_MCT_choosewindow, text="MCT Composition x:", bg='#2b2b2b', fg="#a9b7c6", anchor=W).grid(row=2,
+        Label(call_MCT_choosewindow, text="MCT Composition x:", bg=self.bg, fg=self.fg, anchor=W).grid(row=2,
                                                                                                            column=0,
                                                                                                            columnspan=1,
                                                                                                            sticky=W)
 
-        entry_x = Entry(call_MCT_choosewindow, highlightbackground='#2b2b2b', width=5)
+        entry_x = Entry(call_MCT_choosewindow, highlightbackground=self.bg, width=5)
         entry_x.grid(row=2, column=1, sticky=W)
         entry_x.insert(0, "0.21")
 
@@ -2879,11 +2895,11 @@ class FTIR_fittingtool_GUI(Frame):
             buttongofuncton()
 
         buttonOK = Button(call_MCT_choosewindow, text="Calculate",
-                          command=buttongofuncton, highlightbackground='#2b2b2b', width=10)
+                          command=buttongofuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=3, column=0, columnspan=1, sticky=W)
 
         buttonOK = Button(call_MCT_choosewindow, text="Cancel",
-                          command=buttonCancelfuncton, highlightbackground='#2b2b2b', width=10)
+                          command=buttonCancelfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=3, column=1, columnspan=1, sticky=E)
         call_MCT_choosewindow.bind('<Return>', buttongofunction_event)
 
@@ -3011,7 +3027,7 @@ class FTIR_fittingtool_GUI(Frame):
     def removeprogressbar(self):
         self.progressbar.pack_forget()
 
-        self.status1 = Label(self.statusbar, text=self.text, fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE)
+        self.status1 = Label(self.statusbar, text=self.text, fg=self.fg, bg=self.bg, bd=1, relief=RIDGE)
         self.status1.pack(side=LEFT, fill=X, expand=True)
         self.status1.pack_propagate(0)
 
@@ -3039,7 +3055,7 @@ def main():
 
     root.wm_title("FTIR Fitting Tool v. {}".format(__version__))
     # root.iconbitmap("icon.icns")
-    root.configure(background='#2b2b2b')
+    root.configure(background=color_theme.bg)
 
     def guessanumber(event):
         guesswindow = Toplevel()
@@ -3054,7 +3070,7 @@ def main():
         # and where it is placed
         guesswindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
         guesswindow.wm_title("Guess A Number!")
-        guesswindow.configure(background='#2b2b2b')
+        guesswindow.configure(background=color_theme.bg)
         guesswindow.attributes('-topmost', 'true')
         # guesswindow.grab_set()
         guessnumbers.guessnumbers_GUI(guesswindow, guesswindow, listbox)
@@ -3073,15 +3089,15 @@ def main():
         guesswindow.protocol("WM_DELETE_WINDOW", _delete_window)
 
     # Status bar #
-    statusbar = Frame(root, bg='#2b2b2b', bd=1, relief=RIDGE)
+    statusbar = Frame(root, bg=color_theme.bg, bd=1, relief=RIDGE)
 
     def mouseon_blue(event, label):
         label.config(fg="deep sky blue")
 
     def mouseleave_blue(event, label):
-        label.config(fg="#a9b7c6")
+        label.config(fg=color_theme.fg)
 
-    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE,
+    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg=color_theme.fg, bg=color_theme.bg, bd=1, relief=RIDGE,
                         padx=4.2, width=21)
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
@@ -3089,13 +3105,13 @@ def main():
     authorLabel.bind("<Enter>", lambda event, arg=authorLabel: mouseon_blue(event, arg))
     authorLabel.bind("<Leave>", lambda event, arg=authorLabel: mouseleave_blue(event, arg))
 
-    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg='#a9b7c6', bg='#2b2b2b',
+    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg=color_theme.fg, bg=color_theme.bg,
                     bd=1, relief=RIDGE)
     if _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
         status1.config(text='Welcome to FTIR Fitting Tool. Press Ctrl + P for help.')
     status1.pack(side=LEFT, fill=X, expand=True)
     status1.pack_propagate(0)
-    status2 = Label(statusbar, text='v. {}'.format(__version__), fg='#a9b7c6', bg='#2b2b2b', bd=1, relief=RIDGE,
+    status2 = Label(statusbar, text='v. {}'.format(__version__), fg=color_theme.fg, bg=color_theme.bg, bd=1, relief=RIDGE,
                     width=21)
     status2.pack(side=RIGHT)
 
@@ -3106,10 +3122,10 @@ def main():
     logFrame.pack(side=BOTTOM, fill=X, expand=False)
     logFrame.pack_propagate(0)
 
-    scrollbar = Scrollbar(logFrame, bg='#393c43', highlightbackground='#393c43', troughcolor='#393c43')
+    scrollbar = Scrollbar(logFrame, bg=color_theme.bg_log, highlightbackground=color_theme.bg_log, troughcolor=color_theme.bg_log)
     scrollbar.pack(side=RIGHT, fill=Y)
 
-    listbox = Listbox(logFrame, fg='#a9b7c6', bg='#393c43', bd=0, selectbackground='#262626', highlightthickness=0,
+    listbox = Listbox(logFrame, fg=color_theme.fg, bg=color_theme.bg_log, bd=0, selectbackground=color_theme.bg_toolbar, highlightthickness=0,
                       yscrollcommand=scrollbar.set)
     listbox.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.config(command=listbox.yview)
