@@ -2083,9 +2083,11 @@ class FTIR_fittingtool_GUI(Frame):
         settingwindow = Toplevel()
         if _platform == "darwin":
             w2 = 460  # width for the window
+            h2 = 300  # height for the window
         elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
-            w2 = 410
-        h2 = 300  # height for the window
+            w2 = 530
+            h2 = 410  # height for the window
+
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
