@@ -20,7 +20,7 @@ import guessnumbers
 import configparser
 import io
 
-__version__ = '2.58d'
+__version__ = '2.58e'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -727,7 +727,7 @@ class FIT_FTIR:
                     basek = k_test
 
             if fitsuccess == 1:
-                if self.fittingtype == 5 or self.fittingtype == 6:
+                if self.fittingtype == 5 or self.fittingtype == 6 or self.fittingtype == 7:
                     self.absorptions.append(basek)
                 else:
                     ab = 4 * np.pi * basek / lamda * 10000
@@ -757,12 +757,13 @@ class FIT_FTIR:
                     self.canvas.show()
                 numbercount2 = 0
 
-        self.addlog('Fitting complete!')
         if self.blindcal == 0:
             try:
                 self.fitline_absorption.pop(0).remove()
             except (AttributeError, IndexError) as error:
                 pass
+
+        print(self.absorptions)
         return self.absorptions
 
     def cal_absorption_single(self, wn):
@@ -874,11 +875,26 @@ class FIT_FTIR:
 
             Zs = self.eta0s * Bs + Cs
             Zp = self.eta0p * Bp + Cp
+            Z2s = self.eta0s * Bs - Cs
+            Z2p = self.eta0p * Bp - Cp
+
+            Ztops = Bs * (Cs.conjugate()) - self.etasubs
+            Ztopp = Bp * (Cp.conjugate()) - self.etasubp
 
             Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
             Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
 
-            peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
+            Rs = Z2s / Zs * ((Z2s / Zs).conjugate())
+            Rp = Z2p / Zp * ((Z2p / Zp).conjugate())
+
+            As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
+            Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
+            if self.fittingtype == 4 or self.fittingtype == 6:  # Absorption
+                peakvalue = (As + Ap) / 2 * 100 * 1
+            elif self.fittingtype == 3 or self.fittingtype == 5:  # Reflection
+                peakvalue = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
+            else:
+                peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
 
             if abs(peakvalue - trans) <= delta:
                 fitsuccess = 1
@@ -886,9 +902,13 @@ class FIT_FTIR:
                 basek = k_test
 
         if fitsuccess == 1:
-            ab = 4 * np.pi * basek / lamda * 10000
-            return ab
+            if self.fittingtype == 5 or self.fittingtype == 6 or self.fittingtype == 7:
+                return basek
+            else:
+                ab = 4 * np.pi * basek / lamda * 10000
+                return ab
         else:
+            self.addlog('Fitting failed at wavenumber = {}cm-1'.format(wn))
             return 0
 
     def returntrans(self):
@@ -1307,10 +1327,13 @@ class FTIR_fittingtool_GUI(Frame):
         buttonfringes.pack(side=RIGHT)
         widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
-        buttoncal = Button(self.frame0, text="Cal (\u03B1)",
+        self.buttoncal = Button(self.frame0, text="Cal (\u03B1)",
                            command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
-        buttoncal.pack(side=RIGHT)
-        widget_instructions(buttoncal, "Calculate absorption coefficient for the whole wavenumber range.")
+        self.buttoncal.pack(side=RIGHT)
+        if int(self.cal_k_instead) == 1:
+            self.buttoncal.config(text='Cal (k)')
+
+        widget_instructions(self.buttoncal, "Calculate absorption coefficient for the whole wavenumber range.")
 
         buttonmct = Button(self.frame0, text="MCT \u03B1",
                            command=self.cal_MCT_absorption, highlightbackground=self.bg_toolbar, width=5)
@@ -1345,7 +1368,7 @@ class FTIR_fittingtool_GUI(Frame):
                 buttonload2.pack(side=LEFT)
                 buttonshowtrans.pack(side=RIGHT)
                 buttonfringes.pack(side=RIGHT)
-                buttoncal.pack(side=RIGHT)
+                self.buttoncal.pack(side=RIGHT)
                 buttonmct.pack(side=RIGHT)
                 buttonsave2.pack(side=RIGHT)
                 buttonsave.pack(side=RIGHT)
@@ -1363,7 +1386,7 @@ class FTIR_fittingtool_GUI(Frame):
                 buttonload2.pack_forget()
                 buttonshowtrans.pack_forget()
                 buttonfringes.pack_forget()
-                buttoncal.pack_forget()
+                self.buttoncal.pack_forget()
                 buttonmct.pack_forget()
                 buttonsave2.pack_forget()
                 buttonsave.pack_forget()
@@ -1995,6 +2018,7 @@ class FTIR_fittingtool_GUI(Frame):
 
             helplines.insert(END, '\n\nUpdate Log:')
             helplines.insert(END, '\nv. 2.58:')
+            helplines.insert(END, '\n   Now one can calculate extinction coefficient k. ')
             helplines.insert(END, '\n   Added configurations to the configuration file. '
                                   'Now you have the option to remember all settings in "settings". ')
             helplines.insert(END, '\n   Added "input data type" option. "Settings" UI is optimized.')
@@ -2204,6 +2228,11 @@ class FTIR_fittingtool_GUI(Frame):
             self.displayabsorption = self.displayabsorption_temp.get()
             self.data_loaded = datalist.index(dataget.get())
             self.cal_k_instead = self.cal_k_instead_temp.get()
+
+            if int(self.cal_k_instead) == 1:
+                self.buttoncal.config(text='Cal (k)')
+            else:
+                self.buttoncal.config(text='Cal(\u03B1)')
             self.Temp = float(entry_s1.get())
 
             cfgfile = open('configuration.ini', 'w')
@@ -2260,6 +2289,9 @@ class FTIR_fittingtool_GUI(Frame):
             self.try_remove_fitline(fitline)
         fitline = theplot.plot(x, y, color, label=thelabel)
         theplot.set_ylabel(ylabel)
+
+        if self.cal_k_instead == 1:
+            theplot.set_ylim([0, 0.6])
 
         if legend_or_not == 1:
             legend = theplot.legend(loc=legend_location, shadow=True)
@@ -2886,17 +2918,27 @@ class FTIR_fittingtool_GUI(Frame):
         self.text2 = self.status2.cget("text")
 
         self.addlog('*' * 60)
-        self.addlog("Absorption calculation in process. Please wait...")
+        if self.cal_k_instead == 1:
+            self.addlog("k calculation in process. Please wait...")
+        else:
+            self.addlog("Absorption calculation in process. Please wait...")
 
         self.queue = queue.Queue()
 
         if int(self.data_loaded) == 0:
-            self.fittype = 0
+            if self.cal_k_instead == 0:
+                self.fittype = 0
+            else:
+                self.fittype = 7
         else:
             if self.cal_k_instead == 0:
                 self.fittype = int(self.data_loaded) + 2
             else:
                 self.fittype = int(self.data_loaded) + 4
+
+        if self.cal_k_instead == 1:
+            self.absorptionplot.set_ylim([0, 0.6])
+            self.absorptionplot.set_ylabel('k')
 
         ThreadedTask_absorption(self.queue, self.Temp, self.wavenumbers_cut1, self.trans_cut1, self.entry_d_0.get(),
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
@@ -2924,16 +2966,27 @@ class FTIR_fittingtool_GUI(Frame):
                 self.removewavenumber()
                 return
 
-            self.addlog('Absorption calculation complete! Total time: {:.1f}s.'.format(self.totaltime))
+            if self.cal_k_instead == 1:
+                self.addlog('k calculation complete! Total time: {:.1f}s.'.format(self.totaltime))
+            else:
+                self.addlog('Absorption calculation complete! Total time: {:.1f}s.'.format(self.totaltime))
 
             self.totaltime = 0
 
             self.try_remove_fitline(self.fitline_trans)
             self.try_remove_fitline(self.fitline_absorb)
-            self.fitline_absorb = self.plot_and_show(self.absorptionplot, self.fitline_absorb, 0, self.wavenumbers_cut1,
-                                                     self.absorptions, self.colororders2[self.numberofdata2],
-                                                     'Calculated Absorption', 'Absorption Coefficient ($cm^{-1}$)',
-                                                     1, 'upper right')
+            if self.cal_k_instead == 1:
+                self.fitline_absorb = self.plot_and_show(self.absorptionplot, self.fitline_absorb, 0,
+                                                         self.wavenumbers_cut1, self.absorptions,
+                                                         self.colororders2[self.numberofdata2],
+                                                         'Calculated k', 'k',
+                                                         1, 'upper right')
+            else:
+                self.fitline_absorb = self.plot_and_show(self.absorptionplot, self.fitline_absorb, 0,
+                                                         self.wavenumbers_cut1, self.absorptions,
+                                                         self.colororders2[self.numberofdata2],
+                                                         'Calculated Absorption', 'Absorption Coefficient ($cm^{-1}$)',
+                                                         1, 'upper right')
 
             self.numberofdata2 += 1
 
