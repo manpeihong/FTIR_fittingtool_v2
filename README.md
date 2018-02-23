@@ -7,6 +7,7 @@ The program uses the knowledge of thin film filters which studied the physics be
 The influence on the EM wave by each layer is represented using an optical transfer matrix (characteristic matrix).  
 For example: H.A. Macleod, Thin-Film Optical Filters(1969), chapter2. 
 
+
 System requirement: 
 
 Mac OS/ Windows / Linux (Not tested)
@@ -16,14 +17,18 @@ python 3.4 +
 The following packages need to be installed before running the program: 
 
 matplotlib, numpy, PyQtChart and mysqlclient. Install using pip is recommended.  
-
+  
+  
 How to run it: 
 
 Download the whole package to local, and then run "FTIR_fittingtool_2_class.py". 
 
+
 For any questions, please contact pman3@uic.edu.
 
+
 © 1, 2018 Peihong Man. 
+
 
 Special Thanks: Dr. Yong Chang. 
 
