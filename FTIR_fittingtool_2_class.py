@@ -20,7 +20,7 @@ import guessnumbers
 import configparser
 import io
 
-__version__ = '2.58c'
+__version__ = '2.58d'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -714,9 +714,9 @@ class FIT_FTIR:
 
                 As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
                 Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
-                if self.fittingtype == 4:   # Absorption
+                if self.fittingtype == 4 or self.fittingtype == 6:   # Absorption
                     peakvalue = (As + Ap) / 2 * 100 * 1
-                elif self.fittingtype == 3: # Reflection
+                elif self.fittingtype == 3 or self.fittingtype == 5: # Reflection
                     peakvalue = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
                 else:
                     peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
@@ -727,8 +727,11 @@ class FIT_FTIR:
                     basek = k_test
 
             if fitsuccess == 1:
-                ab = 4 * np.pi * basek / lamda * 10000
-                self.absorptions.append(ab)
+                if self.fittingtype == 5 or self.fittingtype == 6:
+                    self.absorptions.append(basek)
+                else:
+                    ab = 4 * np.pi * basek / lamda * 10000
+                    self.absorptions.append(ab)
             else:
                 self.addlog('Fitting failed at wavenumber = {}cm-1'.format(self.wns[wn]))
                 self.absorptions.append(0)
@@ -1239,6 +1242,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.displayreflection = int(self.config["Settings"]["showreflection"])
         self.displayabsorption = int(self.config["Settings"]["showabsorption"])
         self.data_loaded = int(self.config["Settings"]["data_loaded"])
+        self.cal_k_instead = int(self.config["Settings"]["cal_k_instead"])
 
         # Set the color scheme for the frame
         self.bg = color_theme(self.config_theme).bg
@@ -2144,7 +2148,7 @@ class FTIR_fittingtool_GUI(Frame):
               bg=self.bg, fg=self.fg, anchor=W).grid(row=4, column=0, columnspan=5, sticky=W)
 
         Label(settingwindow, text="The data loaded is:", bg=self.bg, fg=self.fg, anchor=W) \
-            .grid(row=5, column=0, columnspan=2, sticky=E)
+            .grid(row=5, column=0, columnspan=1, sticky=E)
 
         datalist = ["Transmission data", "Reflection data", "Absorption data"]
         dataget = StringVar(settingwindow)
@@ -2154,7 +2158,16 @@ class FTIR_fittingtool_GUI(Frame):
         # '*'  to receive each list item as a separate parameter.
         if _platform == "darwin":
             dataoption.config(bg=self.bg, highlightthickness=0, width=16)
-        dataoption.grid(row=5, column=2, columnspan=3, sticky=W)
+        dataoption.grid(row=5, column=1, columnspan=2, sticky=W)
+
+        self.cal_k_instead_temp = IntVar()
+
+        checkboxk = Checkbutton(settingwindow, text="Cal k instead", variable=self.cal_k_instead_temp,
+                                bg=self.bg, fg=self.fg)
+        checkboxk.grid(row=5, column=3, columnspan=1, sticky=W)
+
+        if self.cal_k_instead == 1:
+            checkboxk.select()
 
         Label(settingwindow, text="-" * 31 + "Other" + "-" * 32,
               bg=self.bg, fg=self.fg, anchor=W).grid(row=6, column=0, columnspan=5, sticky=W)
@@ -2190,6 +2203,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.displayreflection = self.displayreflection_temp.get()
             self.displayabsorption = self.displayabsorption_temp.get()
             self.data_loaded = datalist.index(dataget.get())
+            self.cal_k_instead = self.cal_k_instead_temp.get()
             self.Temp = float(entry_s1.get())
 
             cfgfile = open('configuration.ini', 'w')
@@ -2203,6 +2217,7 @@ class FTIR_fittingtool_GUI(Frame):
                 self.config.set("Settings", "showreflection", str(self.displayreflection))
                 self.config.set("Settings", "showabsorption", str(self.displayabsorption))
                 self.config.set("Settings", "data_loaded", str(self.data_loaded))
+                self.config.set("Settings", "cal_k_instead", str(self.cal_k_instead))
                 self.config.write(cfgfile)
                 cfgfile.close()
 
@@ -2878,7 +2893,10 @@ class FTIR_fittingtool_GUI(Frame):
         if int(self.data_loaded) == 0:
             self.fittype = 0
         else:
-            self.fittype = int(self.data_loaded) + 2
+            if self.cal_k_instead == 0:
+                self.fittype = int(self.data_loaded) + 2
+            else:
+                self.fittype = int(self.data_loaded) + 4
 
         ThreadedTask_absorption(self.queue, self.Temp, self.wavenumbers_cut1, self.trans_cut1, self.entry_d_0.get(),
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
