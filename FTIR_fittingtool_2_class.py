@@ -20,7 +20,7 @@ import guessnumbers
 import configparser
 import io
 
-__version__ = '2.58b'
+__version__ = '2.58c'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -31,6 +31,7 @@ class color_theme:
         self.fg = ''
         self.bg_toolbar = ''
         self.bg_log = ''
+        self.facecolor = ''
 
         self.changetheme()
 
@@ -40,28 +41,33 @@ class color_theme:
             self.fg = "#a9b7c6"
             self.bg_toolbar = '#262626'
             self.bg_log = '#393c43'
+            self.facecolor = 'gainsboro'
         elif self.theme == 1:    # Light
             self.bg = "whitesmoke"
             self.fg = "dimgrey"
             self.bg_toolbar = 'gainsboro'
             self.bg_log = 'darkgrey'
+            self.facecolor = 'white'
         elif self.theme == 2:    # Royale
             self.bg = "orangered"
             self.fg = "white"
             self.bg_toolbar = 'gold'
             self.bg_log = 'gold'
+            self.facecolor = 'lemonchiffon'
 
         elif self.theme == 3:    # Skyblue
             self.bg = "lightskyblue"
             self.fg = "white"
             self.bg_toolbar = 'dodgerblue'
             self.bg_log = 'cornflowerblue'
+            self.facecolor = 'lightcyan'
 
         elif self.theme == 4:    # Creamy
             self.bg = "papayawhip"
             self.fg = "gray"
             self.bg_toolbar = 'orange'
             self.bg_log = 'khaki'
+            self.facecolor = 'seashell'
 
 
 class FIT_FTIR:
@@ -570,7 +576,7 @@ class FIT_FTIR:
 
         for wn in range(0, len(self.wns)):
             lamda = 10000 / self.wns[wn]
-            trans = self.trans[wn]
+            trans = self.trans[wn]  # Here trans can also represent reflection/abosrption. Diff. is self.fittype.
 
             numbercount += 1
             if numbercount == 1:
@@ -680,11 +686,26 @@ class FIT_FTIR:
 
                 Zs = self.eta0s * Bs + Cs
                 Zp = self.eta0p * Bp + Cp
+                Z2s = self.eta0s * Bs - Cs
+                Z2p = self.eta0p * Bp - Cp
+
+                Ztops = Bs * (Cs.conjugate()) - self.etasubs
+                Ztopp = Bp * (Cp.conjugate()) - self.etasubp
 
                 Ts = 4 * self.eta0s * self.etasubs / Zs / Zs.conjugate()
                 Tp = 4 * self.eta0p * self.etasubp / Zp / Zp.conjugate()
 
-                peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
+                Rs = Z2s / Zs * ((Z2s / Zs).conjugate())
+                Rp = Z2p / Zp * ((Z2p / Zp).conjugate())
+
+                As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
+                Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
+                if self.fittingtype == 4:   # Absorption
+                    peakvalue = (As + Ap) / 2 * 100 * 1
+                elif self.fittingtype == 3: # Reflection
+                    peakvalue = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
+                else:
+                    peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
 
                 if abs(peakvalue - trans) <= delta:
                     fitsuccess = 1
@@ -1203,11 +1224,13 @@ class FTIR_fittingtool_GUI(Frame):
         self.blindcal = int(self.config["Settings"]["blindcalculation"])
         self.displayreflection = int(self.config["Settings"]["showreflection"])
         self.displayabsorption = int(self.config["Settings"]["showabsorption"])
+        self.data_loaded = int(self.config["Settings"]["data_loaded"])
 
         # Set the color scheme for the frame
         self.bg = color_theme(self.config_theme).bg
         self.fg = color_theme(self.config_theme).fg
         self.bg_toolbar = color_theme(self.config_theme).bg_toolbar
+        self.facecolor = color_theme(self.config_theme).facecolor
 
         self.argu_fgbg = {'fg': self.fg, 'bg': self.bg}
         self.argu_entry1 = {'highlightbackground': self.bg, 'width': self.COLUMN1_WIDTH,
@@ -1266,12 +1289,12 @@ class FTIR_fittingtool_GUI(Frame):
         buttonfringes.pack(side=RIGHT)
         widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
-        buttoncal = Button(self.frame0, text="Cal (a)",
+        buttoncal = Button(self.frame0, text="Cal (\u03B1)",
                            command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
         buttoncal.pack(side=RIGHT)
         widget_instructions(buttoncal, "Calculate absorption coefficient for the whole wavenumber range.")
 
-        buttonmct = Button(self.frame0, text="MCT a",
+        buttonmct = Button(self.frame0, text="MCT \u03B1",
                            command=self.cal_MCT_absorption, highlightbackground=self.bg_toolbar, width=5)
         buttonmct.pack(side=RIGHT)
         widget_instructions(buttonmct, "Show theoretical modelings of MCT absorption coefficient.")
@@ -1801,6 +1824,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.FTIRfigure = Figure(figsize=(7.8, 4), dpi=100)
 
         self.FTIRfigure.subplots_adjust(left=0.08, bottom=0.12, right=0.92, top=0.95)
+        self.FTIRfigure.patch.set_facecolor(self.facecolor)
         self.FTIRplot = self.FTIRfigure.add_subplot(111)
 
         self.FTIRplot.plot(self.wavenumbers, self.transmissions)
@@ -1809,6 +1833,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
         self.FTIRplot.set_ylabel('Transmission (%)')
         self.FTIRplot.grid(True)
+        self.FTIRplot.set_facecolor(self.facecolor)
         self.vline = self.FTIRplot.axvline(x=400, visible=True, color='k', linewidth=0.7)
         self.hline = self.FTIRplot.axhline(y=0, visible=True, color='k', linewidth=0.7)
         self.dot = self.FTIRplot.plot(0, 0, marker='o', color='r')
@@ -1954,6 +1979,9 @@ class FTIR_fittingtool_GUI(Frame):
             helplines.insert(END, '\nv. 2.58:')
             helplines.insert(END, '\n   Added configurations to the configuration file. '
                                   'Now you have the option to remember all settings in "settings". ')
+            helplines.insert(END, '\n   Added "input data type" option. "Settings" UI is optimized.')
+            helplines.insert(END, '\n   Added function to prevent click button during calculation. ')
+            helplines.insert(END, '\n   Added unicode characters for alpha. ')
             helplines.insert(END, '\n   Customized color theme. ')
             helplines.insert(END, '\nv. 2.57:')
             helplines.insert(END, '\n   Added wavenumber/wavelength/energy/composition calculator. ')
@@ -2040,9 +2068,9 @@ class FTIR_fittingtool_GUI(Frame):
 
         settingwindow = Toplevel()
         if _platform == "darwin":
-            w2 = 250  # width for the window
+            w2 = 460  # width for the window
         elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
-            w2 = 200
+            w2 = 410
         h2 = 300  # height for the window
         ws = self.masterroot.winfo_screenwidth()  # width of the screen
         hs = self.masterroot.winfo_screenheight()  # height of the screen
@@ -2058,47 +2086,65 @@ class FTIR_fittingtool_GUI(Frame):
         settingwindow.attributes('-topmost', 'true')
         settingwindow.grab_set()
 
-        Label(settingwindow, text="---------------General----------------",
-              bg=self.bg, fg=self.fg, anchor=W).grid(row=0, column=0, columnspan=2, sticky=W)
+        Label(settingwindow, text="-" * 30 + "General" + "-" * 31,
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=0, column=0, columnspan=5, sticky=W)
+
+        Label(settingwindow, text="Temperature (K):", bg=self.bg, fg=self.fg, anchor=W)\
+            .grid(row=1, column=0, sticky=W)
+        entry_s1 = Entry(settingwindow, highlightbackground=self.bg, width=6)
+        entry_s1.grid(row=1, column=1, sticky=W)
+        entry_s1.insert(0, self.Temp)
+        entry_s1.focus_set()
 
         self.blindcal_temp = IntVar()
         checkboxblindcal = Checkbutton(settingwindow, text="Do blind calculation", variable=self.blindcal_temp,
-                                bg=self.bg, fg=self.fg)
-        checkboxblindcal.grid(row=1, column=0, columnspan=2, sticky=W)
+                                       bg=self.bg, fg=self.fg)
+        checkboxblindcal.grid(row=1, column=2, columnspan=2, sticky=W)
+
 
         if self.blindcal == 1:
             checkboxblindcal.select()
 
-        Label(settingwindow, text="Temperature (K):", bg=self.bg, fg=self.fg, anchor=W)\
-            .grid(row=2, column=0, sticky=W)
-        entry_s1 = Entry(settingwindow, highlightbackground=self.bg, width=10)
-        entry_s1.grid(row=2, column=1, sticky=W)
-        entry_s1.insert(0, self.Temp)
-        entry_s1.focus_set()
+        Label(settingwindow, text="-" * 28 + "Show Fringes" + "-" * 27,
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=2, column=0, columnspan=5, sticky=W)
 
-        Label(settingwindow, text="-------------Show Fringes------------",
-              bg=self.bg, fg=self.fg, anchor=W).grid(row=3, column=0, columnspan=2, sticky=W)
+        self.displayreflection_temp, self.displayabsorption_temp, self.data_loaded_temp = IntVar(), IntVar(), IntVar()
 
-        self.displayreflection_temp, self.displayabsorption_temp = IntVar(), IntVar()
         checkboxr = Checkbutton(settingwindow, text="Show Reflection", variable=self.displayreflection_temp,
                                 bg=self.bg, fg=self.fg)
-        checkboxr.grid(row=4, column=0, columnspan=2, sticky=W)
+        checkboxr.grid(row=3, column=0, columnspan=2, sticky=W)
 
         if self.displayreflection == 1:
             checkboxr.select()
 
         checkboxa = Checkbutton(settingwindow, text="Show Absorption", variable=self.displayabsorption_temp,
                                 bg=self.bg, fg=self.fg)
-        checkboxa.grid(row=5, column=0, columnspan=2, sticky=W)
+        checkboxa.grid(row=3, column=2, columnspan=2, sticky=W)
 
         if self.displayabsorption == 1:
             checkboxa.select()
 
-        Label(settingwindow, text="-----------------Other----------------",
-              bg=self.bg, fg=self.fg, anchor=W).grid(row=6, column=0, columnspan=2, sticky=W)
+        Label(settingwindow, text="-" * 28 + "Calculate \u03B1" + "-" * 29,
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=4, column=0, columnspan=5, sticky=W)
+
+        Label(settingwindow, text="The data loaded is:", bg=self.bg, fg=self.fg, anchor=W) \
+            .grid(row=5, column=0, columnspan=2, sticky=E)
+
+        datalist = ["Transmission data", "Reflection data", "Absorption data"]
+        dataget = StringVar(settingwindow)
+        dataget.set(datalist[int(self.data_loaded)])  # initial value
+
+        dataoption = OptionMenu(settingwindow, dataget, *datalist)
+        # '*'  to receive each list item as a separate parameter.
+        if _platform == "darwin":
+            dataoption.config(bg=self.bg, highlightthickness=0, width=16)
+        dataoption.grid(row=5, column=2, columnspan=3, sticky=W)
+
+        Label(settingwindow, text="-" * 31 + "Other" + "-" * 32,
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=6, column=0, columnspan=5, sticky=W)
 
         Label(settingwindow, text="Theme(Restart program needed):", bg=self.bg, fg=self.fg, anchor=W) \
-            .grid(row=7, column=0, columnspan=2, sticky=W)
+            .grid(row=7, column=0, columnspan=2, sticky=E)
 
         themelist = ["Dark: Default", "Light", "Royale", "Skyblue", "Creamy"]
         themeget = StringVar(settingwindow)
@@ -2107,24 +2153,27 @@ class FTIR_fittingtool_GUI(Frame):
         themeoption = OptionMenu(settingwindow, themeget, *themelist)
         # '*'  to receive each list item as a separate parameter.
         if _platform == "darwin":
-            themeoption.config(bg=self.bg, highlightthickness=0, width=24)
-        themeoption.grid(row=8, column=0, columnspan=2, sticky=W)
+            themeoption.config(bg=self.bg, highlightthickness=0, width=16)
+        themeoption.grid(row=7, column=2, columnspan=3, sticky=W)
 
         # Samplenamegetoption.grab_set()
         # Structurenamegetoption.focus_set()
 
-        Label(settingwindow, text="--------------------------------------",
-              bg=self.bg, fg=self.fg, anchor=W).grid(row=9, column=0, columnspan=2, sticky=W)
+        Label(settingwindow, text="-" * 69,
+              bg=self.bg, fg=self.fg, anchor=W).grid(row=8, column=0, columnspan=5, sticky=W)
 
         self.remembersettings = IntVar()
-        checkbox_rem = Checkbutton(settingwindow, text="Remem.my.choices(Change config)", variable=self.remembersettings,
+        checkbox_rem = Checkbutton(settingwindow, text="Rememember my choices"
+                                                       "(Caution! Change Configuration file.)",
+                                   variable=self.remembersettings,
                                    bg=self.bg, fg=self.fg)
-        checkbox_rem.grid(row=10, column=0, columnspan=2, sticky=W)
+        checkbox_rem.grid(row=10, column=0, columnspan=4, sticky=W)
 
         def buttonOkayfuncton():
             self.blindcal = self.blindcal_temp.get()
             self.displayreflection = self.displayreflection_temp.get()
             self.displayabsorption = self.displayabsorption_temp.get()
+            self.data_loaded = datalist.index(dataget.get())
             self.Temp = float(entry_s1.get())
 
             cfgfile = open('configuration.ini', 'w')
@@ -2137,6 +2186,7 @@ class FTIR_fittingtool_GUI(Frame):
                 self.config.set("Settings", "blindcalculation", str(self.blindcal))
                 self.config.set("Settings", "showreflection", str(self.displayreflection))
                 self.config.set("Settings", "showabsorption", str(self.displayabsorption))
+                self.config.set("Settings", "data_loaded", str(self.data_loaded))
                 self.config.write(cfgfile)
                 cfgfile.close()
 
@@ -2156,10 +2206,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         buttonOK = Button(settingwindow, text="OK",
                           command=buttonOkayfuncton, highlightbackground=self.bg, width=10)
-        buttonOK.grid(row=11, column=0, columnspan=1)
+        buttonOK.grid(row=11, column=0, columnspan=2)
         buttonOK = Button(settingwindow, text="Cancel",
                           command=buttonCancelfuncton, highlightbackground=self.bg, width=10)
-        buttonOK.grid(row=11, column=1, columnspan=1)
+        buttonOK.grid(row=11, column=2, columnspan=2)
         settingwindow.bind('<Return>', buttonOkayfunction_event)
 
     def try_remove_fitline(self, thefitline):
@@ -2198,6 +2248,9 @@ class FTIR_fittingtool_GUI(Frame):
     def openfromfile(self):
 
         """Open a FTIR transmission .csv file. """
+
+        if self.programbusy == 1:
+            return
 
         if self.numberofdata >= 6:
             self.addlog('Cannot add more data file.')
@@ -2270,6 +2323,9 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Open from sql database. """
 
+        if self.programbusy == 1:
+            return
+
         if self.numberofdata >= 6:
             self.addlog('Cannot add more data file.')
             return
@@ -2294,6 +2350,9 @@ class FTIR_fittingtool_GUI(Frame):
     def savetofile(self):
 
         """Save calculated Transmission/Reflection/Absorption to file."""
+
+        if self.programbusy == 1:
+            return
 
         if self.peakvalues_fit ==[]:
             self.addlog("There is nothing to save. ")
@@ -2325,6 +2384,9 @@ class FTIR_fittingtool_GUI(Frame):
     def load_structure(self):
 
         """Load existing heterojunction structures (.csv files.)"""
+
+        if self.programbusy == 1:
+            return
 
         if self.layernumber != 0:
             loadornot = messagebox.askquestion(" ", "A structure can only be loaded on bare subtrate. "
@@ -2516,6 +2578,9 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Show the calculated fringes curve based the structure and parameters provided. """
 
+        if self.programbusy == 1:
+            return
+
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
         if self.layernumber == 0:
@@ -2620,6 +2685,9 @@ class FTIR_fittingtool_GUI(Frame):
     def fit_fringes(self):
 
         """Find the best CdTe/HgTe offsets to fit the fringes. """
+
+        if self.programbusy == 1:
+            return
 
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
@@ -2726,6 +2794,9 @@ class FTIR_fittingtool_GUI(Frame):
 
         """Calculate the absorption coefficient as a function of wavenumebrs. """
 
+        if self.programbusy == 1:
+            return
+
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
         for i in range(1, self.layernumber + 1):
@@ -2787,10 +2858,16 @@ class FTIR_fittingtool_GUI(Frame):
         self.addlog("Absorption calculation in process. Please wait...")
 
         self.queue = queue.Queue()
+
+        if int(self.data_loaded) == 0:
+            self.fittype = 0
+        else:
+            self.fittype = int(self.data_loaded) + 2
+
         ThreadedTask_absorption(self.queue, self.Temp, self.wavenumbers_cut1, self.trans_cut1, self.entry_d_0.get(),
                                 self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
                                 float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
-                                float(self.entry_24.get()), self.subtype, 0, self.listbox, self.progress_var,
+                                float(self.entry_24.get()), self.subtype, self.fittype, self.listbox, self.progress_var,
                                 self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas,
                                 self.blindcal, self.abortmission).start()
         self.master.after(100, self.process_queue_absorption)
@@ -2857,6 +2934,10 @@ class FTIR_fittingtool_GUI(Frame):
             self.after(100, self.process_queue_absorption)
 
     def cal_MCT_absorption(self):
+
+        if self.programbusy == 1:
+            return
+
         call_MCT_choosewindow = Toplevel()
         w2 = 250  # width for the window
         h2 = 100  # height for the window
