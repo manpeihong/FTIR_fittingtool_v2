@@ -48,14 +48,14 @@ class color_theme:
             self.bg_toolbar = 'gainsboro'
             self.bg_log = 'darkgrey'
             self.facecolor = 'white'
-        elif self.theme == 2:    # Royale
+        elif self.theme == 2:    # Royal
             self.bg = "orangered"
             self.fg = "white"
             self.bg_toolbar = 'gold'
             self.bg_log = 'gold'
             self.facecolor = 'lemonchiffon'
 
-        elif self.theme == 3:    # Skyblue
+        elif self.theme == 3:    # Sky
             self.bg = "lightskyblue"
             self.fg = "white"
             self.bg_toolbar = 'dodgerblue'
@@ -68,6 +68,20 @@ class color_theme:
             self.bg_toolbar = 'orange'
             self.bg_log = 'khaki'
             self.facecolor = 'seashell'
+
+        elif self.theme == 5:    # Mystery
+            self.bg = "mediumpurple"
+            self.fg = "white"
+            self.bg_toolbar = 'darkviolet'
+            self.bg_log = 'mediumorchid'
+            self.facecolor = 'lavender'
+
+        elif self.theme == 6:    # Spring
+            self.bg = "greenyellow"
+            self.fg = "black"
+            self.bg_toolbar = 'limegreen'
+            self.bg_log = 'mediumseagreen'
+            self.facecolor = 'palegreen'
 
 
 class FIT_FTIR:
@@ -2158,7 +2172,7 @@ class FTIR_fittingtool_GUI(Frame):
         Label(settingwindow, text="Theme(Restart program needed):", bg=self.bg, fg=self.fg, anchor=W) \
             .grid(row=7, column=0, columnspan=2, sticky=E)
 
-        themelist = ["Dark: Default", "Light", "Royale", "Skyblue", "Creamy"]
+        themelist = ["Dark: Default", "Light", "Royal", "Sky", "Creamy", "Mystery", "Spring"]
         themeget = StringVar(settingwindow)
         themeget.set(themelist[int(self.config_theme)])  # initial value
 
