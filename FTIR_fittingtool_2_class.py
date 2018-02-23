@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox
 from tkinter.ttk import Progressbar
 import csv
 import matplotlib
+
 matplotlib.use("TkAgg")
 # import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
@@ -42,41 +43,41 @@ class color_theme:
             self.bg_toolbar = '#262626'
             self.bg_log = '#393c43'
             self.facecolor = 'gainsboro'
-        elif self.theme == 1:    # Light
+        elif self.theme == 1:  # Light
             self.bg = "whitesmoke"
             self.fg = "dimgrey"
             self.bg_toolbar = 'gainsboro'
             self.bg_log = 'darkgrey'
             self.facecolor = 'white'
-        elif self.theme == 2:    # Royal
+        elif self.theme == 2:  # Royal
             self.bg = "orangered"
             self.fg = "white"
             self.bg_toolbar = 'gold'
             self.bg_log = 'gold'
             self.facecolor = 'lemonchiffon'
 
-        elif self.theme == 3:    # Sky
+        elif self.theme == 3:  # Sky
             self.bg = "lightskyblue"
             self.fg = "white"
             self.bg_toolbar = 'dodgerblue'
             self.bg_log = 'cornflowerblue'
             self.facecolor = 'lightcyan'
 
-        elif self.theme == 4:    # Creamy
+        elif self.theme == 4:  # Creamy
             self.bg = "papayawhip"
             self.fg = "gray"
             self.bg_toolbar = 'orange'
             self.bg_log = 'khaki'
             self.facecolor = 'seashell'
 
-        elif self.theme == 5:    # Mystery
+        elif self.theme == 5:  # Mystery
             self.bg = "mediumpurple"
             self.fg = "white"
             self.bg_toolbar = 'darkviolet'
             self.bg_log = 'mediumorchid'
             self.facecolor = 'lavender'
 
-        elif self.theme == 6:    # Spring
+        elif self.theme == 6:  # Spring
             self.bg = "greenyellow"
             self.fg = "black"
             self.bg_toolbar = 'limegreen'
@@ -144,15 +145,16 @@ class FIT_FTIR:
 
         """Load all material refractive index data."""
 
-        reference_info = [ ("ZnSe_n.csv","wl_n_ZnSe","n_ZnSe"),
-                            ("ZnSe_k.csv","wl_k_ZnSe","k_ZnSe"),
-                            ("BaF2_n.csv","wl_n_BaF2","n_BaF2"),
-                            ("BaF2_k.csv","wl_k_BaF2","k_BaF2"),
-                            ("Ge_n_293K.csv","wl_n_Ge","n_Ge"),
-                            ("ZnS_n.csv","wl_n_ZnS","n_ZnS"),
-                            ("ZnS_k.csv","wl_k_ZnS","k_ZnS"),
-                            ("Si3N4_n.csv","wl_n_Si3N4","n_Si3N4"),
-                            ("Si3N4_k.csv","wl_k_Si3N4","k_Si3N4") ]
+        reference_info = [("ZnSe_n.csv", "wl_n_ZnSe", "n_ZnSe"),
+                          ("ZnSe_k.csv", "wl_k_ZnSe", "k_ZnSe"),
+                          ("BaF2_n.csv", "wl_n_BaF2", "n_BaF2"),
+                          ("BaF2_k.csv", "wl_k_BaF2", "k_BaF2"),
+                          ("Ge_n_293K.csv", "wl_n_Ge", "n_Ge"),
+                          ("Ge_k.csv", "wl_k_Ge", "k_Ge"),
+                          ("ZnS_n.csv", "wl_n_ZnS", "n_ZnS"),
+                          ("ZnS_k.csv", "wl_k_ZnS", "k_ZnS"),
+                          ("Si3N4_n.csv", "wl_n_Si3N4", "n_Si3N4"),
+                          ("Si3N4_k.csv", "wl_k_Si3N4", "k_Si3N4")]
 
         self.osdir = os.getcwd()
         self.n_dir = os.getcwd() + "/Refractive_Index"
@@ -252,7 +254,7 @@ class FIT_FTIR:
         self.Eg = self.E0 + (6.29E-2 + 7.68E-4 * self.temp) * ((1 - 2.14 * x) / (1 + x))
 
         for i in range(0, len(self.crossover_xs) - 1):
-            if self.crossover_xs[i+1] > x >= self.crossover_xs[i]:
+            if self.crossover_xs[i + 1] > x >= self.crossover_xs[i]:
                 self.crossover_a = self.crossover_as[i]
                 break
 
@@ -403,7 +405,10 @@ class FIT_FTIR:
                     return k
 
         elif material == "Ge":
-            return 0
+            for i in range(0, len(self.wl_k_Ge)):
+                if self.wl_k_Ge[i + 1] > lamda >= self.wl_k_Ge[i]:
+                    k = self.k_Ge[i]
+                    return k
 
         elif material == "ZnS":
             for i in range(0, len(self.wl_k_ZnS)):
@@ -518,10 +523,18 @@ class FIT_FTIR:
         self.etasubp = self.nsub * self.nsub / self.etasubs
 
         for i in range(0, len(self.layertype_list)):
-            matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) / self.etas_list[len(self.layertype_list) - i - 1]],
-                                       [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]), np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
-            matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]), 1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) / self.etap_list[len(self.layertype_list) - i - 1]],
-                                       [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]), np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
+            matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - i - 1]),
+                                  1j * np.sin(self.deltas_list[len(self.layertype_list) - i - 1]) / self.etas_list[
+                                      len(self.layertype_list) - i - 1]],
+                                 [1j * self.etas_list[len(self.layertype_list) - i - 1] * np.sin(
+                                     self.deltas_list[len(self.layertype_list) - i - 1]),
+                                  np.cos(self.deltas_list[len(self.layertype_list) - i - 1])]])
+            matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - i - 1]),
+                                  1j * np.sin(self.deltap_list[len(self.layertype_list) - i - 1]) / self.etap_list[
+                                      len(self.layertype_list) - i - 1]],
+                                 [1j * self.etap_list[len(self.layertype_list) - i - 1] * np.sin(
+                                     self.deltap_list[len(self.layertype_list) - i - 1]),
+                                  np.cos(self.deltap_list[len(self.layertype_list) - i - 1])]])
 
             self.matrixs_list.append(matrixs)
             self.matrixp_list.append(matrixp)
@@ -659,13 +672,15 @@ class FIT_FTIR:
 
                 for l in range(0, len(self.layertype_list)):
                     matrixs = np.matrix([[np.cos(self.deltas_list[len(self.layertype_list) - l - 1]),
-                                          1j * np.sin(self.deltas_list[len(self.layertype_list) - l - 1]) / self.etas_list[
+                                          1j * np.sin(self.deltas_list[len(self.layertype_list) - l - 1]) /
+                                          self.etas_list[
                                               len(self.layertype_list) - l - 1]],
                                          [1j * self.etas_list[len(self.layertype_list) - l - 1] * np.sin(
                                              self.deltas_list[len(self.layertype_list) - l - 1]),
                                           np.cos(self.deltas_list[len(self.layertype_list) - l - 1])]])
                     matrixp = np.matrix([[np.cos(self.deltap_list[len(self.layertype_list) - l - 1]),
-                                          1j * np.sin(self.deltap_list[len(self.layertype_list) - l - 1]) / self.etap_list[
+                                          1j * np.sin(self.deltap_list[len(self.layertype_list) - l - 1]) /
+                                          self.etap_list[
                                               len(self.layertype_list) - l - 1]],
                                          [1j * self.etap_list[len(self.layertype_list) - l - 1] * np.sin(
                                              self.deltap_list[len(self.layertype_list) - l - 1]),
@@ -714,9 +729,9 @@ class FIT_FTIR:
 
                 As = 4 * self.eta0s * Ztops.real / Zs / Zs.conjugate()
                 Ap = 4 * self.eta0p * Ztopp.real / Zp / Zp.conjugate()
-                if self.fittingtype == 4 or self.fittingtype == 6:   # Absorption
+                if self.fittingtype == 4 or self.fittingtype == 6:  # Absorption
                     peakvalue = (As + Ap) / 2 * 100 * 1
-                elif self.fittingtype == 3 or self.fittingtype == 5: # Reflection
+                elif self.fittingtype == 3 or self.fittingtype == 5:  # Reflection
                     peakvalue = (Rs + Rp) / 2 * 100 * 1 + (Ts + Tp) / 2 * 100 * (1 - self.scalefactor)
                 else:
                     peakvalue = (Ts + Tp) / 2 * 100 * self.scalefactor
@@ -751,7 +766,8 @@ class FIT_FTIR:
                     except (AttributeError, IndexError) as error:
                         pass
 
-                    self.fitline_absorption = self.absorptionplot.plot(self.wns[0: len(self.absorptions)], self.absorptions,
+                    self.fitline_absorption = self.absorptionplot.plot(self.wns[0: len(self.absorptions)],
+                                                                       self.absorptions,
                                                                        'r',
                                                                        label='Calculated Absorption')
                     self.canvas.show()
@@ -763,7 +779,6 @@ class FIT_FTIR:
             except (AttributeError, IndexError) as error:
                 pass
 
-        print(self.absorptions)
         return self.absorptions
 
     def cal_absorption_single(self, wn):
@@ -941,7 +956,8 @@ class cal_MCT_a:
             self.E0 = -0.355 + 1.77 * self.x
             self.ag = -65 + 1.88 * self.T + (8694 - 10.31 * self.T) * self.x
             self.Eg = -0.295 + 1.87 * self.x - 0.28 * self.x * self.x + \
-                      (6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
+                      (
+                                  6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
             self.delta_kT = (np.log(self.ag) - np.log(self.a0)) / (self.Eg - self.E0)
             self.beta = -1 + 0.083 * self.T + (21 - 0.13 * self.T) * self.x
         elif self.fittype == "Schacham and Finkman":
@@ -951,13 +967,14 @@ class cal_MCT_a:
             self.delta_kT = 32670 * (1 + self.x) / (self.T + 81.9)
             self.beta = 210900 * np.sqrt((1 + self.x) / (81.9 + self.T))
         elif self.fittype == "Yong":
-            self.W = 0.013 # not sure
-            self.A = 1 / np.power(10, 17) # not sure
+            self.W = 0.013  # not sure
+            self.A = 1 / np.power(10, 17)  # not sure
             self.P = 8 / np.power(10, 8)
             self.s = np.sqrt(2 * self.P * self.P / 3)
             self.B = self.A / np.power(np.pi, 2) / np.power(self.s, 3)
             self.E0 = -0.295 + 1.87 * self.x - 0.28 * self.x * self.x + \
-                      (6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
+                      (
+                                  6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
 
             # print(self.E0)
             # Here E0 is the same equation as Eg in Chu's fomula.
@@ -974,7 +991,8 @@ class cal_MCT_a:
         elif self.fittype == "Yong":
             self.ab = self.B / self.E0 * \
                       ((self.W / 2 + self.b) * np.sqrt((self.W / 2 + self.b) * (self.W / 2 + self.b) - self.b * self.b)
-                       + 1 / 8 * (self.W / 2 + 2 * self.b) * np.sqrt((self.W / 2 + 2 * self.b) * (self.W / 2 + 2 * self.b) - 4 * self.b * self.b)) * np.exp(energy / self.W)
+                       + 1 / 8 * (self.W / 2 + 2 * self.b) * np.sqrt((self.W / 2 + 2 * self.b) * (
+                                          self.W / 2 + 2 * self.b) - 4 * self.b * self.b)) * np.exp(energy / self.W)
 
         return self.ab
 
@@ -984,22 +1002,24 @@ class cal_MCT_a:
         elif self.fittype == "Schacham and Finkman":
             self.ab = self.beta * np.sqrt(energy - self.Eg)
         elif self.fittype == "Yong":
-            self.ab = self.B / energy * ((energy - self.Eg + self.b) * np.sqrt((energy - self.Eg + self.b) * (energy - self.Eg + self.b) - self.b * self.b)
-                                         + 1 / 8 * (energy - self.Eg + 2 * self.b) * np.sqrt((energy - self.Eg + 2 * self.b) * (energy - self.Eg + 2 * self.b) - 4 * self.b * self.b))
+            self.ab = self.B / energy * ((energy - self.Eg + self.b) * np.sqrt(
+                (energy - self.Eg + self.b) * (energy - self.Eg + self.b) - self.b * self.b)
+                                         + 1 / 8 * (energy - self.Eg + 2 * self.b) * np.sqrt(
+                        (energy - self.Eg + 2 * self.b) * (energy - self.Eg + 2 * self.b) - 4 * self.b * self.b))
         return self.ab
 
     def cal_all(self):
         self.absorptions = []
         for wavenumber in self.wavenumbers:
             wl = 10000 / wavenumber
-            E = 4.13566743 * 3 / 10 / wl      # Here E is in unit of eV.
+            E = 4.13566743 * 3 / 10 / wl  # Here E is in unit of eV.
             if self.fittype == "Chu" or self.fittype == "Schacham and Finkman":
                 if E <= self.Eg:
                     self.absorptions.append(self.cal_Urbach(E))
                 else:
                     self.absorptions.append(self.cal_Kane(E))
             if self.fittype == "Yong":
-                if E <= self.Eg + self.W/2:
+                if E <= self.Eg + self.W / 2:
                     self.absorptions.append(self.cal_Urbach(E))
                 else:
                     self.absorptions.append(self.cal_Kane(E))
@@ -1039,7 +1059,8 @@ class ThreadedTask_absorption(threading.Thread):
         fitobject = FIT_FTIR(self.temp, self.wns, self.trans, self.subd, self.layertype_list, self.entry_x_list,
                              self.entry_d_list, self.checklayer_list, self.scalefactor, self.angle, self.CdTe_offset,
                              self.HgTe_offset, self.subtype, self.fittype, self.listbox, self.progress_var,
-                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal, self.abortmission)
+                             self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas, self.blindcal,
+                             self.abortmission)
         self.queue.put(fitobject.cal_absorption())
 
 
@@ -1131,15 +1152,18 @@ class ThreadedTask_fringes(threading.Thread):
         for CdTe_offset in np.arange(self.inital_CdTe - CdTe_fitrange, self.inital_CdTe + CdTe_fitrange, 1):
             for HgTe_offset in np.arange(self.inital_HgTe - HgTe_fitrange, self.inital_HgTe + HgTe_fitrange, 1):
                 self.progress_var.set((CdTe_offset - self.inital_CdTe + CdTe_fitrange) / CdTe_fitrange / 2 * 100 +
-                                      (HgTe_offset - self.inital_HgTe + HgTe_fitrange) / HgTe_fitrange / 2 / CdTe_fitrange / 2 * 100)
+                                      (
+                                                  HgTe_offset - self.inital_HgTe + HgTe_fitrange) / HgTe_fitrange / 2 / CdTe_fitrange / 2 * 100)
                 for i in range(0, self.layernumber):
                     if int(self.checklayer_list[i]) == 1:
                         if self.layertype_list[i] == "CdTe":
                             new_d = float(self.entry_d_list_initial[i]) * (1 + 0.01 * CdTe_offset)
                             self.entry_d_list[i] = new_d
                         elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
-                            new_d = float(self.entry_d_list_initial[i]) * float(self.entry_x_list[i]) * (1 + 0.01 * CdTe_offset) \
-                                    + float(self.entry_d_list_initial[i]) * (1 - float(self.entry_x_list[i])) * (1 + 0.01 * HgTe_offset)
+                            new_d = float(self.entry_d_list_initial[i]) * float(self.entry_x_list[i]) * (
+                                        1 + 0.01 * CdTe_offset) \
+                                    + float(self.entry_d_list_initial[i]) * (1 - float(self.entry_x_list[i])) * (
+                                                1 + 0.01 * HgTe_offset)
                             self.entry_d_list[i] = new_d
 
                 fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list,
@@ -1293,7 +1317,7 @@ class FTIR_fittingtool_GUI(Frame):
             widget.bind("<Leave>", mouseleave)
 
         buttonsettings = Button(self.frame0, text="Settings",
-                            command=self.settings, highlightbackground=self.bg_toolbar, width=7)
+                                command=self.settings, highlightbackground=self.bg_toolbar, width=7)
         buttonsettings.pack(side=LEFT)
         widget_instructions(buttonsettings, "Global Settings including Temperature.")
 
@@ -1326,10 +1350,14 @@ class FTIR_fittingtool_GUI(Frame):
 =======
         buttonshowtrans = Button(self.frame0, text="(S)how Trans",
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> py_Peihong
                             command=self.show_fringes, highlightbackground='#262626', width=10)
 =======
                             command=self.show_fringes, highlightbackground=self.bg_toolbar, width=10)
+>>>>>>> py_Peihong
+=======
+                                 command=self.show_fringes, highlightbackground=self.bg_toolbar, width=10)
 >>>>>>> py_Peihong
         buttonshowtrans.pack(side=RIGHT)
         widget_instructions(buttonshowtrans, "Calculate transmission curve based on layer structure.")
@@ -1340,7 +1368,7 @@ class FTIR_fittingtool_GUI(Frame):
         widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
         self.buttoncal = Button(self.frame0, text="Cal (\u03B1)",
-                           command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
+                                command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
         self.buttoncal.pack(side=RIGHT)
         if int(self.cal_k_instead) == 1:
             self.buttoncal.config(text='Cal (k)')
@@ -1436,9 +1464,12 @@ class FTIR_fittingtool_GUI(Frame):
             elif self.varsub.get() == "Air":
                 self.subtype = 3
 
-        Label(self.frame3, text='Layers\u2193', **self.argu_fgbg, width=self.COLUMN0_WIDTH+2).grid(row=0, column=0, sticky=E)
-        Label(self.frame3, text='x\u2193', **self.argu_fgbg, width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1, sticky=E)
-        Label(self.frame3, text='d(\u03BCm)\u2193', **self.argu_fgbg, width=self.COLUMN2_WIDTH).grid(row=0, column=2, sticky=E)
+        Label(self.frame3, text='Layers\u2193', **self.argu_fgbg, width=self.COLUMN0_WIDTH + 2).grid(row=0, column=0,
+                                                                                                     sticky=E)
+        Label(self.frame3, text='x\u2193', **self.argu_fgbg, width=self.COLUMN1_WIDTH + 1).grid(row=0, column=1,
+                                                                                                sticky=E)
+        Label(self.frame3, text='d(\u03BCm)\u2193', **self.argu_fgbg, width=self.COLUMN2_WIDTH).grid(row=0, column=2,
+                                                                                                     sticky=E)
 
         self.varsub = StringVar(self.frame3)
         self.varsub.set("Si")  # initial value
@@ -1447,17 +1478,17 @@ class FTIR_fittingtool_GUI(Frame):
         suboption1.config(width=self.COLUMN0_WIDTH, anchor=E)
         if _platform == "darwin":
             suboption1.config(bg=self.bg)
-        suboption1.grid(row=27, column=0, sticky=W+E)
+        suboption1.grid(row=27, column=0, sticky=W + E)
 
         self.entry_d_0 = Entry(self.frame3, **self.argu_entry2)
-        self.entry_d_0.grid(row=27, column=2, sticky=W+E)
+        self.entry_d_0.grid(row=27, column=2, sticky=W + E)
         self.entry_d_0.insert(0, '500')
 
         Label(self.frame3, text='  ', **self.argu_fgbg, width=self.COLUMN0_WIDTH).grid(row=27, column=3, sticky=E)
 
         self.layernumber = 0
         self.layertypevar1, self.layertypevar2, self.layertypevar3, self.layertypevar4, self.layertypevar5, \
-        self.layertypevar6, self.layertypevar7, self.layertypevar8, self.layertypevar9 , self.layertypevar10, \
+        self.layertypevar6, self.layertypevar7, self.layertypevar8, self.layertypevar9, self.layertypevar10, \
         self.layertypevar11, self.layertypevar12, self.layertypevar13, self.layertypevar14, self.layertypevar15, \
         self.layertypevar16, self.layertypevar17, self.layertypevar18, self.layertypevar19, self.layertypevar20, \
         self.layertypevar21, self.layertypevar22, self.layertypevar23 \
@@ -1535,35 +1566,37 @@ class FTIR_fittingtool_GUI(Frame):
             else:
                 getattr(self, "layertypevar{}".format(self.layernumber)).set("MCT")
 
-            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)), *self.available_materials)
+            layertypeoption1 = OptionMenu(self.frame3, getattr(self, "layertypevar{}".format(self.layernumber)),
+                                          *self.available_materials)
             layertypeoption1.config(width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
             if _platform == "darwin":
                 layertypeoption1.config(bg=self.bg)
-            layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W+E, pady=0, ipady=0)
+            layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W + E, pady=0, ipady=0)
 
-            getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
+            getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W + E)
             if self.layernumber == 1:
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, '1.00')
             else:
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, '0.30')
 
-            getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2, sticky=W+E)
+            getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2, sticky=W + E)
             if self.layernumber == 1:
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '11.0')
             else:
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, '0.0')
 
-            checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)),
+            checkbox1 = Checkbutton(self.frame3, text="",
+                                    variable=getattr(self, "checklayer{}".format(self.layernumber)),
                                     bg=self.bg, highlightthickness=self.hld, borderwidth=0)
             checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
             checkbox1.select()
 
             if self.layernumber < 22:
-                self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
+                self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W + E)
 
         self.buttonaddlayer = Button(self.frame3, text="Add layer on top", command=add_layer_on_top,
                                      highlightbackground=self.bg, width=12)
-        self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W+E)
+        self.buttonaddlayer.grid(row=26, column=0, columnspan=4, sticky=W + E)
 
         widget_instructions(self.buttonaddlayer, "Add one more layer on top of the current structure. Max 22 layers. ")
 
@@ -1631,12 +1664,12 @@ class FTIR_fittingtool_GUI(Frame):
                     while Delta > 0.0001:
                         Delta = Energy - (
                                 (-.302 + 1.93 * x + 5.35 * .0001 * Temp * (
-                                            1 - 2 * x) - .81 * x * x + .832 * x * x * x) * 1000)
+                                        1 - 2 * x) - .81 * x * x + .832 * x * x * x) * 1000)
                         x = x + 0.00001
                         if x > 1:
                             return 'N/A'
                     return x
-                        
+
                 Temp = self.Temp
                 wn = 0
                 wl = 0
@@ -1714,7 +1747,8 @@ class FTIR_fittingtool_GUI(Frame):
             label.config(fg=self.fg)
             self.status1.config(text=self.text)
 
-        label_comp = Label(self.frame4, text='Hg\u2081\u208b\u2093Cd\u2093Te x:', **self.argu_fgbg, width=LABEL_WIDTH - 4, anchor=E)
+        label_comp = Label(self.frame4, text='Hg\u2081\u208b\u2093Cd\u2093Te x:', **self.argu_fgbg,
+                           width=LABEL_WIDTH - 4, anchor=E)
         label_comp.grid(row=0, column=6, columnspan=1, sticky=E)
         label_comp.bind("<Button-1>", wavelength_calculator)
         label_comp.bind("<Enter>", lambda event, arg=label_comp: mouseon_red(event, arg))
@@ -1832,7 +1866,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.entry_21.grid(row=0, column=8)
         self.entry_21.insert(0, "0.7")
         widget_instructions(label_21, "Fitting parameter to represent the percentage of light passing"
-                                                   " through the initial air-layers surface.")
+                                      " through the initial air-layers surface.")
 
         label_22 = Label(self.frame2, text='Angle:', width=LABEL_WIDTH - 6, anchor=E, **self.argu_fgbg)
         label_22.grid(row=1, column=7, columnspan=1, sticky=E)
@@ -1847,7 +1881,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.entry_23.grid(row=0, column=10)
         self.entry_23.insert(0, "0.0")
         widget_instructions(label_23, "Fitting parameter to represent the CdTe thickness difference "
-                                                   "between real value and designed value.")
+                                      "between real value and designed value.")
 
         label_24 = Label(self.frame2, text='HgTe offset(%):', width=LABEL_WIDTH, anchor=E, **self.argu_fgbg)
         label_24.grid(row=1, column=9, columnspan=1, sticky=E)
@@ -1990,7 +2024,8 @@ class FTIR_fittingtool_GUI(Frame):
 
             scrollbarhelp.config(command=helplines.yview)
 
-            helplines.insert(END, "FTIR fitting tool, with customization of layer structures. v{}.  ".format(__version__))
+            helplines.insert(END,
+                             "FTIR fitting tool, with customization of layer structures. v{}.  ".format(__version__))
             helplines.insert(END, '\n\nFor any questions or sugguestions please contact {}.'.format(__emailaddress__))
 
             helplines.insert(END, '\n\nBasic concept:')
@@ -2104,14 +2139,15 @@ class FTIR_fittingtool_GUI(Frame):
         for i in range(1, self.layernumber + 1):
             if int(getattr(self, "checklayer{}".format(i)).get()) == 1:
                 if getattr(self, "layertypevar{}".format(i)).get() == "CdTe":
-                    new_d = self.entry_d_list_initial[i-1] * (1 + 0.01 * float(self.entry_23.get()))
+                    new_d = self.entry_d_list_initial[i - 1] * (1 + 0.01 * float(self.entry_23.get()))
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
                 elif getattr(self, "layertypevar{}".format(i)).get() == "MCT" \
                         or getattr(self, "layertypevar{}".format(i)).get() == "SL":
-                    new_d = self.entry_d_list_initial[i-1] * float(getattr(self, "entry_x_{}".format(i)).get()) \
+                    new_d = self.entry_d_list_initial[i - 1] * float(getattr(self, "entry_x_{}".format(i)).get()) \
                             * (1 + 0.01 * float(self.entry_23.get())) \
-                            + self.entry_d_list_initial[i-1] * (1 - float(getattr(self, "entry_x_{}".format(i)).get())) \
+                            + self.entry_d_list_initial[i - 1] * (
+                                        1 - float(getattr(self, "entry_x_{}".format(i)).get())) \
                             * (1 + 0.01 * float(self.entry_24.get()))
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
@@ -2145,7 +2181,7 @@ class FTIR_fittingtool_GUI(Frame):
         Label(settingwindow, text="-" * 30 + "General" + "-" * 31,
               bg=self.bg, fg=self.fg, anchor=W).grid(row=0, column=0, columnspan=5, sticky=W)
 
-        Label(settingwindow, text="Temperature (K):", bg=self.bg, fg=self.fg, anchor=W)\
+        Label(settingwindow, text="Temperature (K):", bg=self.bg, fg=self.fg, anchor=W) \
             .grid(row=1, column=0, sticky=W)
         entry_s1 = Entry(settingwindow, highlightbackground=self.bg, width=6)
         entry_s1.grid(row=1, column=1, sticky=W)
@@ -2156,7 +2192,6 @@ class FTIR_fittingtool_GUI(Frame):
         checkboxblindcal = Checkbutton(settingwindow, text="Do blind calculation", variable=self.blindcal_temp,
                                        bg=self.bg, fg=self.fg)
         checkboxblindcal.grid(row=1, column=2, columnspan=2, sticky=W)
-
 
         if self.blindcal == 1:
             checkboxblindcal.select()
@@ -2293,7 +2328,8 @@ class FTIR_fittingtool_GUI(Frame):
         except (AttributeError, IndexError) as error:
             pass
 
-    def plot_and_show(self, theplot, fitline, remove_fitline_or_not, x, y, color, thelabel, ylabel, legend_or_not, legend_location):
+    def plot_and_show(self, theplot, fitline, remove_fitline_or_not, x, y, color, thelabel, ylabel, legend_or_not,
+                      legend_location):
 
         """Plot a new line on the subplot, and show it."""
 
@@ -2417,7 +2453,8 @@ class FTIR_fittingtool_GUI(Frame):
             return
         self.wavenumbers = data[0]
         self.transmissions = np.array(data[1]) * 100
-        my_label = meta_data["sample_name"] + ' at T=' + str(meta_data["temperature_in_k"]) + ' K' # "date(time)", "bias_in_v", "time(time)"
+        my_label = meta_data["sample_name"] + ' at T=' + str(
+            meta_data["temperature_in_k"]) + ' K'  # "date(time)", "bias_in_v", "time(time)"
 
 <<<<<<< HEAD
 =======
@@ -2462,7 +2499,7 @@ class FTIR_fittingtool_GUI(Frame):
         if self.programbusy == 1:
             return
 
-        if self.peakvalues_fit ==[]:
+        if self.peakvalues_fit == []:
             self.addlog("There is nothing to save. ")
             return
 
@@ -2548,7 +2585,7 @@ class FTIR_fittingtool_GUI(Frame):
         openfromfilewindow.attributes('-topmost', 'true')
         openfromfilewindow.grab_set()
 
-        Label(openfromfilewindow, text="Existing Structure:", bg=self.bg, fg=self.fg, anchor=W)\
+        Label(openfromfilewindow, text="Existing Structure:", bg=self.bg, fg=self.fg, anchor=W) \
             .grid(row=0, column=0, columnspan=1, sticky=W)
 
         Structurenameget = StringVar(openfromfilewindow)
@@ -2562,7 +2599,7 @@ class FTIR_fittingtool_GUI(Frame):
             Structurenamegetoption.config(bg=self.bg, highlightthickness=0)
 
         Structurenamegetoption.config(width=24)
-        #Structurenamegetoption["menu"].config(bg=self.bg)
+        # Structurenamegetoption["menu"].config(bg=self.bg)
         Structurenamegetoption.grid(row=1, column=0, columnspan=2)
         # Samplenamegetoption.grab_set()
         Structurenamegetoption.focus_set()
@@ -2588,6 +2625,7 @@ class FTIR_fittingtool_GUI(Frame):
                         checklist.append(int(row[3]))
                     except ValueError:
                         pass
+
             # file.close()
 
             def add_layer_on_top(layer, x, d, check_or_not):
@@ -2600,22 +2638,24 @@ class FTIR_fittingtool_GUI(Frame):
                 layertypeoption1.config(width=self.COLUMN0_WIDTH, anchor=E, highlightthickness=self.hld, borderwidth=0)
                 if _platform == "darwin":
                     layertypeoption1.config(bg=self.bg)
-                layertypeoption1.grid(row=27 -self.layernumber, column=0, sticky=W+E)
+                layertypeoption1.grid(row=27 - self.layernumber, column=0, sticky=W + E)
 
-                getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1, sticky=W+E)
+                getattr(self, "entry_x_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=1,
+                                                                          sticky=W + E)
                 getattr(self, "entry_x_{}".format(self.layernumber)).insert(0, x)
 
                 getattr(self, "entry_d_{}".format(self.layernumber)).grid(row=27 - self.layernumber, column=2)
                 getattr(self, "entry_d_{}".format(self.layernumber)).insert(0, d)
 
-                checkbox1 = Checkbutton(self.frame3, text="", variable=getattr(self, "checklayer{}".format(self.layernumber)), 
+                checkbox1 = Checkbutton(self.frame3, text="",
+                                        variable=getattr(self, "checklayer{}".format(self.layernumber)),
                                         bg=self.bg, highlightthickness=self.hld, borderwidth=0)
                 checkbox1.grid(row=27 - self.layernumber, column=3, sticky=W)
                 if check_or_not == 1:
                     checkbox1.select()
 
                 if self.layernumber < 22:
-                    self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W+E)
+                    self.buttonaddlayer.grid(row=26 - self.layernumber, column=0, columnspan=4, sticky=W + E)
 
             for i in range(0, len(layerlist)):
                 if layerlist[i] in self.available_materials:
@@ -2643,10 +2683,10 @@ class FTIR_fittingtool_GUI(Frame):
             buttonOpenfuncton()
 
         buttonOK = Button(openfromfilewindow, text="Open",
-                           command=buttonOpenfuncton, highlightbackground=self.bg, width=10)
+                          command=buttonOpenfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=2, column=0, columnspan=1)
         buttonOK = Button(openfromfilewindow, text="Cancel",
-                           command=buttonCencelfuncton, highlightbackground=self.bg, width=10)
+                          command=buttonCencelfuncton, highlightbackground=self.bg, width=10)
         buttonOK.grid(row=2, column=1, columnspan=1)
         openfromfilewindow.bind('<Return>', buttonOpenfunction_event)
 
@@ -2706,8 +2746,8 @@ class FTIR_fittingtool_GUI(Frame):
 
         addon = 0
         if self.wavenumbers == [] and self.transmissions == []:
-            while addon <= 6000:
-                self.wavenumbers_cut.append(500 + addon)
+            while addon < 5400:
+                self.wavenumbers_cut.append(501 + addon)
                 self.trans_cut.append(0)
                 addon += 10
         for i in range(0, len(self.wavenumbers)):
@@ -2724,10 +2764,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.queue = queue.Queue()
         ThreadedTask_show_fringes(self.queue, self.Temp, self.wavenumbers_cut, self.trans_cut, self.entry_d_0.get(),
-                                self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
-                                float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
-                                float(self.entry_24.get()), self.subtype, 2, self.listbox, self.progress_var,
-                                self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas,
+                                  self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list,
+                                  float(self.entry_21.get()), float(self.entry_22.get()), float(self.entry_23.get()),
+                                  float(self.entry_24.get()), self.subtype, 2, self.listbox, self.progress_var,
+                                  self.wn_beingcalculated, self.FTIRplot, self.absorptionplot, self.canvas,
                                   self.blindcal, self.abortmission).start()
         self.master.after(100, self.process_queue_show_fringes)
 
@@ -3087,7 +3127,7 @@ class FTIR_fittingtool_GUI(Frame):
         call_MCT_choosewindow.attributes('-topmost', 'true')
         call_MCT_choosewindow.grab_set()
 
-        Label(call_MCT_choosewindow, text="Use fitting method by:", bg=self.bg, fg=self.fg, anchor=W)\
+        Label(call_MCT_choosewindow, text="Use fitting method by:", bg=self.bg, fg=self.fg, anchor=W) \
             .grid(row=0, column=0, columnspan=1, sticky=W)
 
         methodnameget = StringVar(call_MCT_choosewindow)
@@ -3103,9 +3143,9 @@ class FTIR_fittingtool_GUI(Frame):
         methodnamegetoption.focus_set()
 
         Label(call_MCT_choosewindow, text="MCT Composition x:", bg=self.bg, fg=self.fg, anchor=W).grid(row=2,
-                                                                                                           column=0,
-                                                                                                           columnspan=1,
-                                                                                                           sticky=W)
+                                                                                                       column=0,
+                                                                                                       columnspan=1,
+                                                                                                       sticky=W)
 
         entry_x = Entry(call_MCT_choosewindow, highlightbackground=self.bg, width=5)
         entry_x.grid(row=2, column=1, sticky=W)
@@ -3202,10 +3242,10 @@ class FTIR_fittingtool_GUI(Frame):
             Delta = 100
             while Delta > 0.0001:
                 Delta = self.energy - (
-                    (-.302 + 1.93 * self.composition +
-                     5.35 * .0001 * self.Temp * (1 - 2 * self.composition) -
-                     .81 * self.composition * self.composition +
-                     .832 * self.composition * self.composition * self.composition) * 1000)
+                        (-.302 + 1.93 * self.composition +
+                         5.35 * .0001 * self.Temp * (1 - 2 * self.composition) -
+                         .81 * self.composition * self.composition +
+                         .832 * self.composition * self.composition * self.composition) * 1000)
                 self.composition += 0.00001
 
         if self.xclick is not None and self.yclick is not None:
@@ -3295,7 +3335,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.progressbar.pack(side=LEFT, fill=X, expand=1)
 
         self.programbusy = 1
-        self.filepath.pack_forget() # The filepath widget is preventing abort button from showing up for some reason.
+        self.filepath.pack_forget()  # The filepath widget is preventing abort button from showing up for some reason.
         self.buttonabort.pack(side=RIGHT)
         self.filepath.pack(side=LEFT, fill=X)
 
@@ -3378,7 +3418,8 @@ def main():
     def mouseleave_blue(event, label):
         label.config(fg=color_theme(config_theme).fg)
 
-    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
+    authorLabel = Label(statusbar, text='© 1,2018 Peihong Man.', fg=color_theme(config_theme).fg,
+                        bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
                         padx=4.2, width=21)
     authorLabel.pack(side=LEFT)
     authorLabel.pack_propagate(0)
@@ -3386,13 +3427,15 @@ def main():
     authorLabel.bind("<Enter>", lambda event, arg=authorLabel: mouseon_blue(event, arg))
     authorLabel.bind("<Leave>", lambda event, arg=authorLabel: mouseleave_blue(event, arg))
 
-    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.', fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg,
+    status1 = Label(statusbar, text='Welcome to FTIR Fitting Tool. Press ⌘+P for help.',
+                    fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg,
                     bd=1, relief=RIDGE)
     if _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
         status1.config(text='Welcome to FTIR Fitting Tool. Press Ctrl + P for help.')
     status1.pack(side=LEFT, fill=X, expand=True)
     status1.pack_propagate(0)
-    status2 = Label(statusbar, text='v. {}'.format(__version__), fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
+    status2 = Label(statusbar, text='v. {}'.format(__version__), fg=color_theme(config_theme).fg,
+                    bg=color_theme(config_theme).bg, bd=1, relief=RIDGE,
                     width=21)
     status2.pack(side=RIGHT)
 
@@ -3403,10 +3446,13 @@ def main():
     logFrame.pack(side=BOTTOM, fill=X, expand=False)
     logFrame.pack_propagate(0)
 
-    scrollbar = Scrollbar(logFrame, bg=color_theme(config_theme).bg_log, highlightbackground=color_theme(config_theme).bg_log, troughcolor=color_theme(config_theme).bg_log)
+    scrollbar = Scrollbar(logFrame, bg=color_theme(config_theme).bg_log,
+                          highlightbackground=color_theme(config_theme).bg_log,
+                          troughcolor=color_theme(config_theme).bg_log)
     scrollbar.pack(side=RIGHT, fill=Y)
 
-    listbox = Listbox(logFrame, fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg_log, bd=0, selectbackground=color_theme(config_theme).bg_toolbar, highlightthickness=0,
+    listbox = Listbox(logFrame, fg=color_theme(config_theme).fg, bg=color_theme(config_theme).bg_log, bd=0,
+                      selectbackground=color_theme(config_theme).bg_toolbar, highlightthickness=0,
                       yscrollcommand=scrollbar.set)
     listbox.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.config(command=listbox.yview)
