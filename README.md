@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.58d
+# FTIR_fittingtool_v2.58e
 The second generation of FTIR data fitting tool. 
 
 NOTE! Starting from v2.54, PyQtChart and mysqlclient are required to run the program. 
@@ -36,6 +36,8 @@ Special Thanks: Dr. Yong Chang.
 Update log: 
 
 v2.58.
+
+Now one can calculate extinction coefficient k.
 
 Added configurations to the configuration file. Now you have the option to remember all settings in "settings".
 
