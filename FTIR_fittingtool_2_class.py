@@ -2171,7 +2171,7 @@ class FTIR_fittingtool_GUI(Frame):
     def settings(self):
 
         """Optinal settings for customized result."""
-
+        
         settingwindow = Toplevel()
         if _platform == "darwin":
             w2 = 460  # width for the window
@@ -2473,6 +2473,31 @@ class FTIR_fittingtool_GUI(Frame):
     def openfromsql(self):
 
         """Open from sql database. """
+
+        if self.programbusy == 1:
+            return
+
+        if self.numberofdata >= 6:
+            self.addlog('Cannot add more data file.', self.warningcolor1)
+            return
+
+        meta_data, data = ftir_sql_browser.Get_Data()
+        if not data[0]:
+            self.addlog("Empty input! Make sure bakcground file is selected.", self.warningcolor1)
+            return
+        self.wavenumbers = data[0]
+        self.transmissions = np.array(data[1]) * 100
+        my_label = meta_data["sample_name"] + ' at T=' + str(
+            meta_data["temperature_in_k"]) + ' K'  # "date(time)", "bias_in_v", "time(time)"
+
+        self.filepath.config(text=my_label)
+
+        self.fitline_data = self.plot_and_show(self.FTIRplot, self.fitline_data, 0, self.wavenumbers,
+                                               self.transmissions, self.colororders[self.numberofdata],
+                                               my_label, 'Transmission (%)', 1, 'upper right')
+
+        self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
+        self.numberofdata += 1
 
     def savetofile(self):
 
