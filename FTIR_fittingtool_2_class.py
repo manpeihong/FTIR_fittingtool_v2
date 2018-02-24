@@ -1315,7 +1315,40 @@ class FTIR_fittingtool_GUI(Frame):
             widget.bind("<Enter>", lambda event, arg=instruction: mouseon(event, arg))
             widget.bind("<Leave>", mouseleave)
 
-        
+        buttonsettings = Button(self.frame0, text="Settings",
+                                command=self.settings, highlightbackground=self.bg_toolbar, width=7)
+        buttonsettings.pack(side=LEFT)
+        widget_instructions(buttonsettings, "Global Settings including Temperature.")
+
+        buttonclear = Button(self.frame0, text="Clear",
+                             command=self.clearalldata, highlightbackground=self.bg_toolbar, width=5)
+        buttonclear.pack(side=LEFT)
+        widget_instructions(buttonclear, "Clear all data including graphs and layer structures.")
+
+        buttonopen = Button(self.frame0, text='(O)pen',
+                            command=self.openfromfile, highlightbackground=self.bg_toolbar, width=5)
+        buttonopen.pack(side=LEFT)
+        widget_instructions(buttonopen, "Open a .csv transmission data file from local. ")
+
+        buttonload3 = Button(self.frame0, text="Open From SQL",
+                             command=self.openfromsql, highlightbackground=self.bg_toolbar, width=12)
+        buttonload3.pack(side=LEFT)
+        widget_instructions(buttonload3, "Open a data file from MySQL database. ")
+
+        buttonload2 = Button(self.frame0, text="(L)oad Structure",
+                             command=self.load_structure, highlightbackground=self.bg_toolbar, width=12)
+        buttonload2.pack(side=LEFT)
+        widget_instructions(buttonload2, "Load existing layer structure. ")
+
+        buttonshowtrans = Button(self.frame0, text="(S)how Trans",
+                                 command=self.show_fringes, highlightbackground=self.bg_toolbar, width=10)
+        buttonshowtrans.pack(side=RIGHT)
+        widget_instructions(buttonshowtrans, "Calculate transmission curve based on layer structure.")
+
+        buttonfringes = Button(self.frame0, text="(F)it Trans",
+                               command=self.fit_fringes, highlightbackground=self.bg_toolbar, width=8)
+        buttonfringes.pack(side=RIGHT)
+        widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
 
         self.buttoncal = Button(self.frame0, text="Cal (\u03B1)",
                                 command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
