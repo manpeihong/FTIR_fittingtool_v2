@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.58e
+# FTIR_fittingtool_v2.59
 The second generation of FTIR data fitting tool. 
 
 NOTE! Starting from v2.54, PyQtChart and mysqlclient are required to run the program. 
@@ -35,13 +35,31 @@ Special Thanks: Dr. Yong Chang.
 
 Update log: 
 
-v2.58.
+v2.59.
 
-Now one can calculate extinction coefficient k.
+Now one can calculate extinction coefficient k(k is not T-dependant.)
 
-Added configurations to the configuration file. Now you have the option to remember all settings in "settings".
+Extinction coefficient k of ZnSe, ZnS, Ge and BaF2 are adjusted based on real FTIR data. 
+
+Added option to use ideal extinction coefficient k in "Settings". 
 
 Added "input data type" option. "Settings" UI is optimized.
+
+Added options for absorption axis scale. The scale automatically change when k is used instead.
+
+"Angle" option is now moved to "settings". 
+
+Optimized a few log output. 
+
+Optimized code for "cal_k" function. Now it will not show error message when lambda is out of range.
+
+Fixed a few small bugs. 
+
+Help file is updated to represent the current version. 
+            
+v2.58.
+
+Added configurations to the configuration file. Now you have the option to remember all settings in "settings".
 
 Added function to prevent click button during calculation. 
 
