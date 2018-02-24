@@ -2472,7 +2472,7 @@ class FTIR_fittingtool_GUI(Frame):
 
     def openfromsql(self):
 
-        """Open from sql database. """
+        """Open from sql database. Only works at UIC. """
 
         if self.programbusy == 1:
             return
