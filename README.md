@@ -49,7 +49,7 @@ Added options for absorption axis scale. The scale automatically change when k i
 
 "Angle" option is now moved to "settings". 
 
-Optimized a few log output. 
+Optimized a few log output. Colored log output.
 
 Optimized code for "cal_k" function. Now it will not show error message when lambda is out of range.
 

@@ -32,6 +32,9 @@ class color_theme:
         self.bg_toolbar = ''
         self.bg_log = ''
         self.facecolor = ''
+        self.warningcolor1 = ''
+        self.warningcolor2 = ''
+        self.warningcolor3 = ''
 
         self.changetheme()
 
@@ -42,18 +45,27 @@ class color_theme:
             self.bg_toolbar = '#262626'
             self.bg_log = '#393c43'
             self.facecolor = 'gainsboro'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'yellow'
+            self.warningcolor3 = 'royalblue'
         elif self.theme == 1:  # Light
             self.bg = "whitesmoke"
             self.fg = "dimgrey"
             self.bg_toolbar = 'gainsboro'
             self.bg_log = 'darkgrey'
             self.facecolor = 'white'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'yellow'
+            self.warningcolor3 = 'royalblue'
         elif self.theme == 2:  # Royal
             self.bg = "orangered"
             self.fg = "white"
             self.bg_toolbar = 'gold'
             self.bg_log = 'gold'
             self.facecolor = 'lemonchiffon'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'green'
+            self.warningcolor3 = 'royalblue'
 
         elif self.theme == 3:  # Sky
             self.bg = "lightskyblue"
@@ -61,6 +73,9 @@ class color_theme:
             self.bg_toolbar = 'dodgerblue'
             self.bg_log = 'cornflowerblue'
             self.facecolor = 'lightcyan'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'yellow'
+            self.warningcolor3 = 'darkviolet'
 
         elif self.theme == 4:  # Creamy
             self.bg = "papayawhip"
@@ -68,6 +83,9 @@ class color_theme:
             self.bg_toolbar = 'orange'
             self.bg_log = 'khaki'
             self.facecolor = 'seashell'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'green'
+            self.warningcolor3 = 'royalblue'
 
         elif self.theme == 5:  # Mystery
             self.bg = "mediumpurple"
@@ -75,6 +93,9 @@ class color_theme:
             self.bg_toolbar = 'darkviolet'
             self.bg_log = 'mediumorchid'
             self.facecolor = 'lavender'
+            self.warningcolor1 = 'lime'
+            self.warningcolor2 = 'orange'
+            self.warningcolor3 = 'deepskyblue'
 
         elif self.theme == 6:  # Spring
             self.bg = "greenyellow"
@@ -82,6 +103,9 @@ class color_theme:
             self.bg_toolbar = 'limegreen'
             self.bg_log = 'mediumseagreen'
             self.facecolor = 'palegreen'
+            self.warningcolor1 = 'red'
+            self.warningcolor2 = 'orange'
+            self.warningcolor3 = 'royalblue'
 
 
 class FIT_FTIR:
@@ -1276,6 +1300,9 @@ class FTIR_fittingtool_GUI(Frame):
         self.fg = color_theme(self.config_theme).fg
         self.bg_toolbar = color_theme(self.config_theme).bg_toolbar
         self.facecolor = color_theme(self.config_theme).facecolor
+        self.warningcolor1 = color_theme(self.config_theme).warningcolor1
+        self.warningcolor2 = color_theme(self.config_theme).warningcolor2
+        self.warningcolor3 = color_theme(self.config_theme).warningcolor3
 
         self.argu_fgbg = {'fg': self.fg, 'bg': self.bg}
         self.argu_entry1 = {'highlightbackground': self.bg, 'width': self.COLUMN1_WIDTH,
@@ -1404,7 +1431,7 @@ class FTIR_fittingtool_GUI(Frame):
                 reveal_toolbar()
 
         def mouseonfilepath(event):
-            self.filepath.config(fg="red")
+            self.filepath.config(fg=self.warningcolor2)
 
         def mouseleavefilepath(event):
             self.filepath.config(fg=self.fg)
@@ -1707,7 +1734,7 @@ class FTIR_fittingtool_GUI(Frame):
               **self.argu_fgbg, width=LABEL_WIDTH - 2, anchor=E).grid(row=0, column=4, columnspan=1, sticky=E)
 
         def mouseon_red(event, label):
-            label.config(fg="red")
+            label.config(fg=self.warningcolor2)
             self.status1.config(text="Click to open a mini calculator for wavenumber, wavelength, energy and x.")
 
         def mouseleave_red(event, label):
@@ -1954,19 +1981,20 @@ class FTIR_fittingtool_GUI(Frame):
 
     def help(self):
         if self.needmorehelp == 0:
-            self.addlog("FTIR fitting tool, with customization of layer structures. v{}. ".format(__version__))
-            self.addlog('Open a FTIR transmission .csv file, then customize your layer structure on the right. '
+            self.addlog("FTIR fitting tool, with customization of layer structures. v{}. ".format(__version__),
+                        self.warningcolor3)
+            self.addlog('Open a FTIR .csv file --> Customize your layer structure on the right. '
                         'You can load or save a structure from file.')
-            self.addlog('Click "Show Trans" to see the result. ')
-            self.addlog('Click "Set" to apply CdTe/HgTe offsets to the layer thicknesses. '
+            self.addlog('--> Click "Show Trans" to see the result. ')
+            self.addlog('--> Click "Set" to apply CdTe/HgTe offsets to the layer thicknesses. '
                         'Note! Only the layers with check marks will be changed accordingly. ')
-            self.addlog('Use "Fit Trans" to find the best CdTe/HgTe offset. Currently this function is running slow.')
             self.addlog('You can do calculation using "Blind calculation" from "Settings" menu. It\'s usually faster.')
+            self.addlog('Description about other functions are given in the status bar.')
 
             if _platform == "darwin":
-                self.addlog('For more help and information, press ⌘+P again.')
+                self.addlog('For more help and information, press ⌘+P again.', self.warningcolor3)
             elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
-                self.addlog('For more help and information, press Ctrl+P again.')
+                self.addlog('For more help and information, press Ctrl+P again.', self.warningcolor3)
 
             self.listbox.insert(END, '*' * 60)
             self.needmorehelp = 1
@@ -2048,7 +2076,7 @@ class FTIR_fittingtool_GUI(Frame):
             helplines.insert(END, '\n   Added options for absorption axis scale. The scale automatically change'
                                   ' when k is used instead.')
             helplines.insert(END, '\n   "Angle" option is now moved to settings. ')
-            helplines.insert(END, '\n   Optimized a few log output. ')
+            helplines.insert(END, '\n   Optimized a few log output. Colored log output.')
             helplines.insert(END, '\n   Optimized code for cal_k function. '
                                   'Now it will not show error message when lambda is out of range.')
             helplines.insert(END, '\n   Fixed a few small bugs. ')
@@ -2152,11 +2180,11 @@ class FTIR_fittingtool_GUI(Frame):
             w2 = 530
             h2 = 410  # height for the window
 
-        ws = self.masterroot.winfo_screenwidth()  # width of the screen
-        hs = self.masterroot.winfo_screenheight()  # height of the screen
+        ws = self.root.winfo_screenwidth()  # width of the screen
+        hs = self.root.winfo_screenheight()  # height of the screen
         # calculate x and y coordinates for the Tk root window
         x2 = (ws / 2) - (w2 / 2)
-        y2 = (hs / 3) - (h2 / 3)
+        y2 = (hs / 4) - (h2 / 4)
         # set the dimensions of the screen
         # and where it is placed
         settingwindow.geometry('%dx%d+%d+%d' % (w2, h2, x2, y2))
@@ -2271,7 +2299,7 @@ class FTIR_fittingtool_GUI(Frame):
         checkbox_rem = Checkbutton(settingwindow, text="Rememember my choices"
                                                        "(Caution! Change Configuration file.)",
                                    variable=self.remembersettings,
-                                   bg=self.bg, fg=self.fg)
+                                   bg=self.bg, fg=self.warningcolor2)
         checkbox_rem.grid(row=11, column=0, columnspan=4, sticky=W)
 
         def buttonOkayfuncton():
@@ -2375,7 +2403,7 @@ class FTIR_fittingtool_GUI(Frame):
             return
 
         if self.numberofdata >= 6:
-            self.addlog('Cannot add more data file.')
+            self.addlog('Cannot add more data file.', self.warningcolor1)
             return
 
         self.wavenumbers = []
@@ -2393,7 +2421,8 @@ class FTIR_fittingtool_GUI(Frame):
         self.filename = self.filename[i + 1:None]
 
         if self.filename[-4:None] != ".csv" and self.filename[-4:None] != ".CSV":
-            self.addlog('{} format is not supported. Please select a .CSV file to open.'.format(self.filename[-4:None]))
+            self.addlog('{} format is not supported. Please select a .CSV file to open.'.format(self.filename[-4:None]),
+                        self.warningcolor2)
             return
 
         self.filepath.config(text=self.filename)
@@ -2439,36 +2468,13 @@ class FTIR_fittingtool_GUI(Frame):
         elif len(self.wavenumbers) == 1946:
             self.addlog('Sample is probably characterized at UIC.')
         self.addlog('Hint: To display absorption coefficient at any point instantly, '
-                    'a layer structure must be created or loaded first.')
+                    'a layer structure must be created or loaded first.', self.warningcolor3)
 
     def openfromsql(self):
 
         """Open from sql database. """
 
-        if self.programbusy == 1:
-            return
-
-        if self.numberofdata >= 6:
-            self.addlog('Cannot add more data file.')
-            return
-
-        meta_data, data = ftir_sql_browser.Get_Data()
-        if not data[0]:
-            self.addlog("Empty input! Make sure bakcground file is selected.")
-            return
-        self.wavenumbers = data[0]
-        self.transmissions = np.array(data[1]) * 100
-        my_label = meta_data["sample_name"] + ' at T=' + str(
-            meta_data["temperature_in_k"]) + ' K'  # "date(time)", "bias_in_v", "time(time)"
-
-        self.filepath.config(text=my_label)
-
-        self.fitline_data = self.plot_and_show(self.FTIRplot, self.fitline_data, 0, self.wavenumbers,
-                                               self.transmissions, self.colororders[self.numberofdata],
-                                               my_label, 'Transmission (%)', 1, 'upper right')
-
-        self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
-        self.numberofdata += 1
+        
 
     def savetofile(self):
 
@@ -2478,14 +2484,14 @@ class FTIR_fittingtool_GUI(Frame):
             return
 
         if self.peakvalues_fit == []:
-            self.addlog("There is nothing to save. ")
+            self.addlog("There is nothing to save. ", self.warningcolor2)
             return
 
         saveascsv = filedialog.asksaveasfilename(defaultextension='.csv')
         if saveascsv is None:
             return
         if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
-            self.addlog('Only .csv file can be saved.')
+            self.addlog('Only .csv file can be saved.', self.warningcolor1)
             return
         f = open(saveascsv, "w")
         if self.displayreflection == 1 or self.displayabsorption == 1:
@@ -2539,7 +2545,7 @@ class FTIR_fittingtool_GUI(Frame):
                 return
 
         if filelist == []:
-            self.addlog("No structure is found. ")
+            self.addlog("No structure is found. ", self.warningcolor1)
             self.structure_dir = self.osdir + "/Preload_Structure"
             return
 
@@ -2639,7 +2645,7 @@ class FTIR_fittingtool_GUI(Frame):
                 if layerlist[i] in self.available_materials:
                     add_layer_on_top(layerlist[i], xlist[i], dlist[i], checklist[i])
                 else:
-                    self.addlog("Invalid Structure file.")
+                    self.addlog("Invalid Structure file.", self.warningcolor1)
                     openfromfilewindow.grab_release()
                     self.masterroot.focus_set()
                     openfromfilewindow.destroy()
@@ -2673,14 +2679,14 @@ class FTIR_fittingtool_GUI(Frame):
         """Save the customized structure to file. This is the best way to create structure files."""
 
         if self.layernumber == 0:
-            self.addlog("There is nothing to save.")
+            self.addlog("There is nothing to save.", self.warningcolor2)
             return
 
         saveascsv = filedialog.asksaveasfilename(defaultextension='.CSV')
         if saveascsv is None:
             return
         if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
-            self.addlog('Only .csv file can be saved.')
+            self.addlog('Only .csv file can be saved.', self.warningcolor1)
             return
         f = open(saveascsv, "w")
 
@@ -2710,7 +2716,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
         if self.layernumber == 0:
-            self.addlog("Please create or load a layer structure first.")
+            self.addlog("Please create or load a layer structure first.", self.warningcolor2)
             return
 
         for i in range(1, self.layernumber + 1):
@@ -2763,7 +2769,7 @@ class FTIR_fittingtool_GUI(Frame):
             result = self.queue.get(0)
 
             if result == "ABORT":
-                self.addlog("Mission aborted.")
+                self.addlog("Mission aborted.", self.warningcolor2)
                 self.abortmission.set(0)
                 self.totaltime = 0
                 self.removeprogressbar()
@@ -2825,7 +2831,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.layertype_list, self.entry_x_list, self.entry_d_list, self.checklayer_list = [], [], [], []
 
         if self.layernumber == 0:
-            self.addlog("Please create or load a layer structure first.")
+            self.addlog("Please create or load a layer structure first.", self.warningcolor2)
             return
 
         for i in range(1, self.layernumber + 1):
@@ -2838,7 +2844,7 @@ class FTIR_fittingtool_GUI(Frame):
         self.trans_cut = []
 
         if float(self.entry_32.get()) > 5000:
-            self.addlog('Please choose the cut range of fringes.')
+            self.addlog('Please choose the cut range of fringes.', self.warningcolor2)
             return
 
         for i in range(0, len(self.wavenumbers)):
@@ -2883,7 +2889,7 @@ class FTIR_fittingtool_GUI(Frame):
             result = self.queue.get(0)
 
             if result == "ABORT":
-                self.addlog("Mission aborted.")
+                self.addlog("Mission aborted.", self.warningcolor2)
                 self.abortmission.set(0)
                 self.totaltime = 0
                 self.removeprogressbar()
@@ -2943,7 +2949,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.checklayer_list.append(int(getattr(self, "checklayer{}".format(i)).get()))
 
         if self.layernumber == 0:
-            self.addlog("Please create or load a layer structure first.")
+            self.addlog("Please create or load a layer structure first.", self.warningcolor2)
             return
 
         checktotal = 0
@@ -2955,11 +2961,12 @@ class FTIR_fittingtool_GUI(Frame):
                 ab_x = self.entry_x_list[i]
             if self.checklayer_list[i] == 1:
                 if self.layertype_list[i] != ablayer or self.entry_x_list[i] != ab_x:
-                    self.addlog("The absorption layers need to have the same layer type and composition.")
+                    self.addlog("The absorption layers need to have the same layer type and composition.",
+                                self.warningcolor1)
                     return
             checktotal += self.checklayer_list[i]
         if checktotal == 0:
-            self.addlog("Please choose which layer is the absorption layer.")
+            self.addlog("Please choose which layer is the absorption layer.", self.warningcolor1)
             return
 
         self.wavenumbers_cut1 = []
@@ -3036,7 +3043,7 @@ class FTIR_fittingtool_GUI(Frame):
             self.absorptions = result
 
             if result == "ABORT":
-                self.addlog("Mission aborted.")
+                self.addlog("Mission aborted.", self.warningcolor2)
                 self.abortmission.set(0)
                 self.totaltime = 0
                 self.removeprogressbar()
@@ -3075,7 +3082,7 @@ class FTIR_fittingtool_GUI(Frame):
                     self.removewavenumber()
                     return
                 if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
-                    self.addlog('Only .csv file can be saved.')
+                    self.addlog('Only .csv file can be saved.', self.warningcolor1)
                     self.removeprogressbar()
                     self.removewavenumber()
                     return
@@ -3179,7 +3186,7 @@ class FTIR_fittingtool_GUI(Frame):
                 if saveascsv is None:
                     return
                 if saveascsv[-4:None] != ".csv" and saveascsv[-4:None] != ".CSV":
-                    self.addlog('Only .csv file can be saved.')
+                    self.addlog('Only .csv file can be saved.', self.warningcolor1)
                     return
                 f = open(saveascsv, "w")
 
@@ -3301,7 +3308,7 @@ class FTIR_fittingtool_GUI(Frame):
         """Clear everything. """
 
         if self.programbusy == 1:
-            self.addlog("Calculation in progress. Abort the mission before clear all data. ")
+            self.addlog("Calculation in progress. Abort the mission before clear all data. ", self.warningcolor2)
             return
 
         clearornot = messagebox.askquestion("CAUTION!", "Clear everything (including all layer structures, "
@@ -3316,9 +3323,19 @@ class FTIR_fittingtool_GUI(Frame):
     def Abort_mission(self):
         self.abortmission.set(1)
 
-    def addlog(self, string):
+    def addlog(self, string, fgcolor="default"):
         self.listbox.insert(END, string)
         self.listbox.yview(END)
+
+        if fgcolor != "default":
+            i = 0
+            while True:
+                try:
+                    self.listbox.itemconfig(i, bg=color_theme(self.config_theme).bg_log)
+                    i += 1
+                except:
+                    self.listbox.itemconfig(i - 1, fg=fgcolor)
+                    break
 
     def addprogressbar(self):
         self.status1.pack_forget()
@@ -3405,7 +3422,7 @@ def main():
     statusbar = Frame(root, bg=color_theme(config_theme).bg, bd=1, relief=RIDGE)
 
     def mouseon_blue(event, label):
-        label.config(fg="deep sky blue")
+        label.config(fg=color_theme(config_theme).warningcolor3)
 
     def mouseleave_blue(event, label):
         label.config(fg=color_theme(config_theme).fg)
