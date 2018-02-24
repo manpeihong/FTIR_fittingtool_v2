@@ -19,9 +19,8 @@ from sys import platform as _platform
 import ftir_sql_browser
 import guessnumbers
 import configparser
-import io
 
-__version__ = '2.58e'
+__version__ = '2.58f'
 __emailaddress__ = "pman3@uic.edu"
 
 
