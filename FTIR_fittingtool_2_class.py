@@ -2471,66 +2471,8 @@ class FTIR_fittingtool_GUI(Frame):
                     'a layer structure must be created or loaded first.', self.warningcolor3)
 
     def openfromsql(self):
-<<<<<<< HEAD
-=======
 
         """Open from sql database. """
-
-<<<<<<< HEAD
->>>>>>> py_Peihong
-=======
-        if self.programbusy == 1:
-            return
-
->>>>>>> py_Peihong
-        if self.numberofdata >= 6:
-            self.addlog('Cannot add more data file.')
-            return
-
-        meta_data, data = ftir_sql_browser.Get_Data()
-        if not data[0]:
-            self.addlog("Empty input! Make sure bakcground file is selected.")
-            return
-        self.wavenumbers = data[0]
-        self.transmissions = np.array(data[1]) * 100
-        my_label = meta_data["sample_name"] + ' at T=' + str(
-            meta_data["temperature_in_k"]) + ' K'  # "date(time)", "bias_in_v", "time(time)"
-
-<<<<<<< HEAD
-=======
-        self.filepath.config(text=my_label)
-
-<<<<<<< HEAD
->>>>>>> py_Peihong
-        # self.FTIRplot = self.FTIRfigure.add_subplot(111)
-        self.FTIRplot.plot(self.wavenumbers, self.transmissions, self.colororders[self.numberofdata], label=my_label)
-        self.FTIRplot.set_xlim([self.lowercut, self.highercut])
-        self.FTIRplot.set_ylim([self.transcutlow, self.transcut])
-        self.FTIRplot.set_xlabel('Wavenumbers ($cm^{-1}$)')
-        self.FTIRplot.set_ylabel('Transmission (%)')
-        self.FTIRplot.grid(True)
-
-        legend = self.FTIRplot.legend(loc='upper right', shadow=True)
-        frame = legend.get_frame()
-        frame.set_facecolor('0.90')
-
-        # Set the fontsize
-        for label in legend.get_texts():
-            label.set_fontsize('medium')
-
-        for label in legend.get_lines():
-            label.set_linewidth(1.5)
-
-        # plt.savefig("test.png", dpi=300)
-        # self.FTIRfigure.show()
-=======
-        self.fitline_data = self.plot_and_show(self.FTIRplot, self.fitline_data, 0, self.wavenumbers,
-                                               self.transmissions, self.colororders[self.numberofdata],
-                                               my_label, 'Transmission (%)', 1, 'upper right')
->>>>>>> py_Peihong
-
-        self.addlog('Added data {} ({})'.format(self.filename, self.colororders[self.numberofdata]))
-        self.numberofdata += 1
 
     def savetofile(self):
 
