@@ -1315,6 +1315,7 @@ class FTIR_fittingtool_GUI(Frame):
             widget.bind("<Enter>", lambda event, arg=instruction: mouseon(event, arg))
             widget.bind("<Leave>", mouseleave)
 
+<<<<<<< HEAD
         buttonsettings = Button(self.frame0, text="Settings",
                                 command=self.settings, highlightbackground=self.bg_toolbar, width=7)
         buttonsettings.pack(side=LEFT)
@@ -1365,6 +1366,9 @@ class FTIR_fittingtool_GUI(Frame):
                                command=self.fit_fringes, highlightbackground=self.bg_toolbar, width=8)
         buttonfringes.pack(side=RIGHT)
         widget_instructions(buttonfringes, "Fit calculated transmission curve with real data.")
+=======
+        
+>>>>>>> py_Peihong
 
         self.buttoncal = Button(self.frame0, text="Cal (\u03B1)",
                                 command=self.cal_absorption, highlightbackground=self.bg_toolbar, width=5)
