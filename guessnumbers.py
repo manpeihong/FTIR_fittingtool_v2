@@ -2,8 +2,10 @@ import math
 from tkinter import *
 from random import randint
 from sys import platform as _platform
+import configparser
+from ColorTheme import color_theme
 
-__version__ = '0.3'
+__version__ = '0.4'
 
 
 class guessnumbers_GUI(Frame):
@@ -22,40 +24,51 @@ class guessnumbers_GUI(Frame):
         self.Bs = 0
         self.exclude = []
 
-        self.frame0 = Frame(self, width=1000, bg='#2b2b2b')
+        self.config = configparser.ConfigParser()
+        self.config.read('configuration.ini')
+        self.config_theme = self.config["Settings"]["colortheme"]
+        self.bg = color_theme(self.config_theme).bg
+        self.fg = color_theme(self.config_theme).fg
+        self.bg_toolbar = color_theme(self.config_theme).bg_toolbar
+        self.facecolor = color_theme(self.config_theme).facecolor
+        self.warningcolor1 = color_theme(self.config_theme).warningcolor1
+        self.warningcolor2 = color_theme(self.config_theme).warningcolor2
+        self.warningcolor3 = color_theme(self.config_theme).warningcolor3
+
+        self.frame0 = Frame(self, width=1000, bg=self.bg)
         self.frame0.pack(side=TOP, fill=X, expand=True)
         self.frame0.pack_propagate(0)
 
         buttonstart = Button(self.frame0, text="(S)tart",
-                            command=self.startgame, highlightbackground='#2b2b2b', width=10)
+                            command=self.startgame, highlightbackground=self.bg, width=10)
         buttonstart.grid(row=0, column=0, columnspan=1)
 
         Label(self.frame0, text='# of digits:',
-              fg="#a9b7c6", bg='#2b2b2b', width=8, anchor=E).grid(row=0, column=1, sticky=E)
-        self.entry_1 = Entry(self.frame0, highlightbackground='#2b2b2b', width=8)
+              fg=self.fg, bg=self.bg, width=8, anchor=E).grid(row=0, column=1, sticky=E)
+        self.entry_1 = Entry(self.frame0, highlightbackground=self.bg, width=8)
         self.entry_1.grid(row=0, column=2)
         self.entry_1.insert(0, '4')
 
         Label(self.frame0, text='# of tries:',
-              fg="#a9b7c6", bg='#2b2b2b', width=8, anchor=E).grid(row=0, column=3, sticky=E)
-        self.entry_2 = Entry(self.frame0, highlightbackground='#2b2b2b', width=8)
+              fg=self.fg, bg=self.bg, width=8, anchor=E).grid(row=0, column=3, sticky=E)
+        self.entry_2 = Entry(self.frame0, highlightbackground=self.bg, width=8)
         self.entry_2.grid(row=0, column=4)
         self.entry_2.insert(0, '10')
 
         Label(self.frame0, text='Guess a number:',
-              fg="#a9b7c6", bg='#2b2b2b', width=13, anchor=E).grid(row=0, column=5, sticky=E)
-        self.entry_3 = Entry(self.frame0, highlightbackground='#2b2b2b', width=8)
+              fg=self.fg, bg=self.bg, width=13, anchor=E).grid(row=0, column=5, sticky=E)
+        self.entry_3 = Entry(self.frame0, highlightbackground=self.bg, width=8)
         self.entry_3.grid(row=0, column=6)
         self.entry_3.insert(0, '')
 
         buttonenter = Button(self.frame0, text="Enter",
-                            command=self.enternumber, highlightbackground='#2b2b2b', width=10)
+                            command=self.enternumber, highlightbackground=self.bg, width=10)
         buttonenter.grid(row=0, column=7, columnspan=1)
 
         if _platform == "darwin":
             buttonenter.config(text="Enter(⏎)")
 
-        self.trylabel = Label(self.frame0, text='Tries left:', fg="#a9b7c6", bg='#2b2b2b', width=43, anchor=W)
+        self.trylabel = Label(self.frame0, text='Tries left:', fg=self.fg, bg=self.bg, width=43, anchor=W)
         self.trylabel.grid(row=0, column=8, sticky=W)
 
         def buttonstart_event(event):
@@ -79,7 +92,7 @@ class guessnumbers_GUI(Frame):
         self.numberoftriesleft = self.numberoftries
         self.randomnumber()
         # self.addlog(self.numberstring)
-        self.addlog('Game begins!')
+        self.addlog('Game begins!', self.warningcolor2)
         self.trylabel.config(text='Tries left: {}'.format(self.numberoftriesleft))
 
     def enternumber(self):
@@ -99,7 +112,7 @@ class guessnumbers_GUI(Frame):
         if self.As == self.digit:
             self.numberoftriesleft -= 1
             self.trylabel.config(text='Tries left: {}'.format(self.numberoftriesleft))
-            self.addlog('Bingo! The number is {}.'.format(self.numberstring))
+            self.addlog('Bingo! The number is {}.'.format(self.numberstring), self.warningcolor1)
             return
         for i in range(0, self.digit):
             for j in range(0, self.digit):
@@ -113,7 +126,7 @@ class guessnumbers_GUI(Frame):
         self.numberoftriesleft -= 1
         self.trylabel.config(text='Tries left: {}'.format(self.numberoftriesleft))
         if self.numberoftriesleft <= 0:
-            self.addlog('Game over! The number is {}'.format(self.numberstring))
+            self.addlog('Game over! The number is {}'.format(self.numberstring), self.warningcolor2)
 
         self.entry_3.delete(0, END)
 
@@ -130,9 +143,19 @@ class guessnumbers_GUI(Frame):
             if oknumber == 1:
                 break
 
-    def addlog(self, string):
+    def addlog(self, string, fgcolor="default"):
         self.listbox.insert(END, string)
         self.listbox.yview(END)
+
+        if fgcolor != "default":
+            i = 0
+            while True:
+                try:
+                    self.listbox.itemconfig(i, bg=color_theme(self.config_theme).bg_log)
+                    i += 1
+                except:
+                    self.listbox.itemconfig(i - 1, fg=fgcolor)
+                    break
 
 
 def main():
