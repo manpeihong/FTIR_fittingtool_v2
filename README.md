@@ -1,7 +1,5 @@
-# FTIR_fittingtool_v2.59
+# FTIR_fittingtool_v2.60
 The second generation of FTIR data fitting tool. 
-
-NOTE! Starting from v2.54, PyQtChart and mysqlclient are required to run the program. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
 The influence on the EM wave by each layer is represented using an optical transfer matrix (characteristic matrix).  
@@ -34,6 +32,12 @@ Special Thanks: Dr. Yong Chang.
 
 
 Update log: 
+
+v2.60.
+
+This update is focused on performance and stability improvements. 
+
+A lot of features are packed in v2.5. v2.6 will be more stable and with less bugs. 
 
 v2.59.
 
