@@ -6,6 +6,7 @@ except:
 	exit()
 import sqlite3
 import configparser
+import os
 import sys
 import datetime
 from PyQt5 import QtCore, QtGui, uic, QtWidgets, QtSql
@@ -13,7 +14,7 @@ from PyQt5.QtWidgets import QAbstractScrollArea
 from PyQt5.QtCore import QSettings, QThread
 import numpy as np
 
-
+os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))  # Change the working directory to current directory.
 qtDesignerFile = "ftir_sql_browser.ui" # GUI layout file.
 Ui_MainWindow, QtBaseClass = uic.loadUiType( qtDesignerFile )
 
