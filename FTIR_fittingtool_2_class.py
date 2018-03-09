@@ -1,4 +1,5 @@
 import os
+import sys
 from tkinter import *
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Progressbar
@@ -21,7 +22,7 @@ import guessnumbers
 import configparser
 from ColorTheme import color_theme
 
-__version__ = '2.60'
+__version__ = '2.61'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -212,98 +213,6 @@ class FIT_FTIR:
             n = np.sqrt(self.A1 + self.B1 / (1 - (self.C1 / lamda) * (self.C1 / lamda)) + self.D1 * lamda * lamda)
             return n
 
-        elif material == "ZnSe":
-            for i in range(0, len(self.wl_n_ZnSe)):
-                if self.wl_n_ZnSe[i + 1] > lamda >= self.wl_n_ZnSe[i]:
-                    if self.temp >= 275:
-                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (self.temp - 300))
-                    else:
-                        n = self.n_ZnSe[i] * (1 + 6.26E-5 * (275 - 300))
-                        if self.temp >= 225:
-                            n = n * (1 + 5.99E-5 * (self.temp - 275))
-                        else:
-                            n = n * (1 + 5.99E-5 * (225 - 275))
-                            if self.temp >= 160:
-                                n = n * (1 + 5.72E-5 * (self.temp - 225))
-                            else:
-                                n = n * (1 + 5.72E-5 * (160 - 225))
-                                if self.temp >= 100:
-                                    n = n * (1 + 5.29E-5 * (self.temp - 160))
-                                else:
-                                    n = n * (1 + 5.29E-5 * (100 - 160))
-                                    n = n * (1 + 4.68E-5 * (self.temp - 160))
-                    return n
-
-        elif material == "BaF2":
-            for i in range(0, len(self.wl_n_BaF2)):
-                if self.wl_n_BaF2[i + 1] > lamda >= self.wl_n_BaF2[i]:
-                    if self.temp >= 275:
-                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (self.temp - 300))
-                    else:
-                        n = self.n_BaF2[i] * (1 - 1.64E-5 * (275 - 300))
-                        if self.temp >= 225:
-                            n = n * (1 - 1.5E-5 * (self.temp - 275))
-                        else:
-                            n = n * (1 - 1.5E-5 * (225 - 275))
-                            if self.temp >= 160:
-                                n = n * (1 - 1.37E-5 * (self.temp - 225))
-                            else:
-                                n = n * (1 - 1.37E-5 * (160 - 225))
-                                if self.temp >= 100:
-                                    n = n * (1 - 9.95E-6 * (self.temp - 160))
-                                else:
-                                    n = n * (1 - 9.95E-6 * (100 - 160))
-                                    n = n * (1 - 8.91E-6 * (self.temp - 160))
-
-                    return n
-
-        elif material == "Ge":
-            try:
-                for i in range(0, len(self.wl_n_Ge)):
-                    if self.wl_n_Ge[i + 1] > lamda >= self.wl_n_Ge[i]:
-                        if self.temp >= 275:
-                            n = self.n_Ge[i] * (1 + 4.25E-5 * (self.temp - 300))
-                        else:
-                            n = self.n_Ge[i] * (1 + 4.25E-5 * (275 - 300))
-                            if self.temp >= 225:
-                                n = n * (1 + 3.87E-5 * (self.temp - 275))
-                            else:
-                                n = n * (1 + 3.87E-5 * (225 - 275))
-                                if self.temp >= 160:
-                                    n = n * (1 + 3.45E-5 * (self.temp - 225))
-                                else:
-                                    n = n * (1 + 3.45E-5 * (160 - 225))
-                                    if self.temp >= 100:
-                                        n = n * (1 + 3.30E-5 * (self.temp - 160))
-                                    else:
-                                        n = n * (1 + 3.30E-5 * (100 - 160))
-                                        n = n * (1 + 2.21E-5 * (self.temp - 160))
-
-                        return n
-            except IndexError:
-                if lamda < self.wl_n_Ge[0]:
-                    return 4.1117 * (1 + 4.24E-4 * (self.temp - 300))
-                elif lamda > self.wl_n_Ge[-1]:
-                    return 3.9996 * (1 + 4.24E-4 * (self.temp - 300))
-
-        elif material == "ZnS":
-            for i in range(0, len(self.wl_n_ZnS)):
-                if self.wl_n_ZnS[i + 1] > lamda >= self.wl_n_ZnS[i]:
-                    n = self.n_ZnS[i] * (1 + 5.43E-5 * (self.temp - 300))
-                    return n
-
-        elif material == "Si3N4":
-            try:
-                for i in range(0, len(self.wl_n_Si3N4)):
-                    if self.wl_n_Si3N4[i + 1] > lamda >= self.wl_n_Si3N4[i]:
-                        n = self.n_Si3N4[i] * (1 + 2.5E-5 * (self.temp - 300))
-                        return n
-            except IndexError:
-                if lamda < self.wl_n_Si3N4[0]:
-                    return 2.46306 * (1 + 2.5E-5 * (self.temp - 300))
-                elif lamda > self.wl_n_Si3N4[-1]:
-                    return 3.68517 * (1 + 2.5E-5 * (self.temp - 300))
-
         elif material == "Si":
             n = np.sqrt(11.67316 + 1 / lamda / lamda + 0.004482633 / (lamda * lamda - 1.108205 * 1.108205))
             return n
@@ -311,6 +220,74 @@ class FIT_FTIR:
         elif material == "Air":
             n = 1
             return n
+
+        else:
+            n = getattr(self, "n_{}".format(material))[getattr(self, "wl_n_{}".format(material)).index(
+                min(getattr(self, "wl_n_{}".format(material)), key=lambda x: abs(x - lamda)))]
+
+            if material == "ZnSe":
+                if self.temp >= 275:
+                    n = n * (1 + 6.26E-5 * (self.temp - 300))
+                else:
+                    n = n * (1 + 6.26E-5 * (275 - 300))
+                    if self.temp >= 225:
+                        n = n * (1 + 5.99E-5 * (self.temp - 275))
+                    else:
+                        n = n * (1 + 5.99E-5 * (225 - 275))
+                        if self.temp >= 160:
+                            n = n * (1 + 5.72E-5 * (self.temp - 225))
+                        else:
+                            n = n * (1 + 5.72E-5 * (160 - 225))
+                            if self.temp >= 100:
+                                n = n * (1 + 5.29E-5 * (self.temp - 160))
+                            else:
+                                n = n * (1 + 5.29E-5 * (100 - 160))
+                                n = n * (1 + 4.68E-5 * (self.temp - 160))
+
+            elif material == "BaF2":
+                if self.temp >= 275:
+                    n = n * (1 - 1.64E-5 * (self.temp - 300))
+                else:
+                    n = n * (1 - 1.64E-5 * (275 - 300))
+                    if self.temp >= 225:
+                        n = n * (1 - 1.5E-5 * (self.temp - 275))
+                    else:
+                        n = n * (1 - 1.5E-5 * (225 - 275))
+                        if self.temp >= 160:
+                            n = n * (1 - 1.37E-5 * (self.temp - 225))
+                        else:
+                            n = n * (1 - 1.37E-5 * (160 - 225))
+                            if self.temp >= 100:
+                                n = n * (1 - 9.95E-6 * (self.temp - 160))
+                            else:
+                                n = n * (1 - 9.95E-6 * (100 - 160))
+                                n = n * (1 - 8.91E-6 * (self.temp - 160))
+
+            elif material == "Ge":
+                if self.temp >= 275:
+                    n = n * (1 + 4.25E-5 * (self.temp - 300))
+                else:
+                    n = n * (1 + 4.25E-5 * (275 - 300))
+                    if self.temp >= 225:
+                        n = n * (1 + 3.87E-5 * (self.temp - 275))
+                    else:
+                        n = n * (1 + 3.87E-5 * (225 - 275))
+                        if self.temp >= 160:
+                            n = n * (1 + 3.45E-5 * (self.temp - 225))
+                        else:
+                            n = n * (1 + 3.45E-5 * (160 - 225))
+                            if self.temp >= 100:
+                                n = n * (1 + 3.30E-5 * (self.temp - 160))
+                            else:
+                                n = n * (1 + 3.30E-5 * (100 - 160))
+                                n = n * (1 + 2.21E-5 * (self.temp - 160))
+
+            elif material == "ZnS":
+                n = n * (1 + 5.43E-5 * (self.temp - 300))
+
+            elif material == "Si3N4":
+                n = n * (1 + 2.5E-5 * (self.temp - 300))
+        return n
 
     def cal_k(self, lamda, material):
 
@@ -1985,9 +1962,13 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.61:')
+            helplines.insert(END, '\n   Fixed an issue where the program cannot be opened from cmd directly. ')
+            helplines.insert(END, '\n   Fixed an issue where it may raise an error message due to materials data '
+                                  'overflow. ')
             helplines.insert(END, '\nv. 2.60:')
             helplines.insert(END, '\n   This update is focused on performance and stability improvements. ')
-            helplines.insert(END, '\n   A lot of features are packed in v2.5. v2.6 will be stable and with '
+            helplines.insert(END, '\n   A lot of features are packed in v2.5. v2.6 will be more stable and with '
                                   'less bugs. ')
             helplines.insert(END, '\nv. 2.59:')
             helplines.insert(END, '\n   Now one can calculate extinction coefficient k(k is not T-dependant.)')
@@ -3313,8 +3294,9 @@ class FTIR_fittingtool_GUI(Frame):
 
 
 def main():
-    # Load the configuration file
+    os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))  # Change the working directory to current directory.
 
+    # Load the configuration file
     config = configparser.ConfigParser()
     config.read('configuration.ini')
     config_theme = config["Settings"]["colortheme"]
