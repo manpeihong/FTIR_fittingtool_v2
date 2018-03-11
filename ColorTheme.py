@@ -3,6 +3,7 @@
 class color_theme:
     def __init__(self, theme):
         self.theme = int(theme)
+
         self.bg = ''
         self.fg = ''
         self.bg_toolbar = ''
@@ -11,6 +12,8 @@ class color_theme:
         self.warningcolor1 = ''
         self.warningcolor2 = ''
         self.warningcolor3 = ''
+        self.highcolor = ''
+        self.lowcolor = ''
 
         self.changetheme()
 
@@ -24,6 +27,8 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'yellow'
             self.warningcolor3 = 'royalblue'
+            self.highcolor = '#168cdf'
+            self.lowcolor = self.highcolor
         elif self.theme == 1:  # Light
             self.bg = "whitesmoke"
             self.fg = "dimgrey"
@@ -33,6 +38,8 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'yellow'
             self.warningcolor3 = 'royalblue'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
         elif self.theme == 2:  # Royal
             self.bg = "orangered"
             self.fg = "white"
@@ -42,6 +49,8 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'green'
             self.warningcolor3 = 'royalblue'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
 
         elif self.theme == 3:  # Sky
             self.bg = "lightskyblue"
@@ -52,6 +61,8 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'yellow'
             self.warningcolor3 = 'darkviolet'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
 
         elif self.theme == 4:  # Creamy
             self.bg = "papayawhip"
@@ -62,6 +73,8 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'green'
             self.warningcolor3 = 'royalblue'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
 
         elif self.theme == 5:  # Mystery
             self.bg = "mediumpurple"
@@ -72,6 +85,8 @@ class color_theme:
             self.warningcolor1 = 'lime'
             self.warningcolor2 = 'orange'
             self.warningcolor3 = 'deepskyblue'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
 
         elif self.theme == 6:  # Spring
             self.bg = "greenyellow"
@@ -82,3 +97,5 @@ class color_theme:
             self.warningcolor1 = 'red'
             self.warningcolor2 = 'orange'
             self.warningcolor3 = 'royalblue'
+            self.highcolor = self.warningcolor3
+            self.lowcolor = self.highcolor
