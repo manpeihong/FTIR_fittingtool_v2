@@ -1105,14 +1105,15 @@ class ThreadedTask_fringes(threading.Thread):
 
 
 class FTIR_fittingtool_GUI(Frame):
-    def __init__(self, root, masterroot, listbox, statusbar, status1, status2, configtheme):
-        super().__init__(root, width=cross_platform_config.config.FRAME_WIDTH, bg="#2b2b2b")
+    def __init__(self, root, masterroot, listbox, statusbar, status1, status2, background, configtheme):
+        super().__init__(root, width=cross_platform_config.config.FRAME_WIDTH, bg=background)
         self.root = root
         self.masterroot = masterroot
         self.listbox = listbox
         self.statusbar = statusbar
         self.status1 = status1
         self.status2 = status2
+        self.configtheme = configtheme
         self.wavenumbers = []
         self.wavenumbers_cut = []
         self.transmissions = []
@@ -3239,7 +3240,8 @@ class FTIR_fittingtool_GUI(Frame):
                                                         "data, settings and graphs)?", icon='warning')
         if clearornot == 'yes':
             self.pack_forget()
-            self.__init__(self.root, self.masterroot, self.listbox, self.statusbar, self.status1, self.status2)
+            self.__init__(self.root, self.masterroot, self.listbox, self.statusbar, self.status1, self.status2,
+                          self.bg, self.configtheme)
             self.addlog('*' * 60)
         else:
             pass
@@ -3394,7 +3396,7 @@ def main():
     listbox.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.config(command=listbox.yview)
 
-    FTIR_fittingtool_GUI(root, root, listbox, statusbar, status1, status2, config_theme_var)
+    FTIR_fittingtool_GUI(root, root, listbox, statusbar, status1, status2, color_theme(config_theme).bg, config_theme_var)
 
     listbox.delete(0, END)
     listbox.insert(END, '*' * 60)
