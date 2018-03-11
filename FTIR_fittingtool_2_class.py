@@ -855,7 +855,7 @@ class cal_MCT_a:
             self.ag = -65 + 1.88 * self.T + (8694 - 10.31 * self.T) * self.x
             self.Eg = -0.295 + 1.87 * self.x - 0.28 * self.x * self.x + \
                       (
-                                  6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
+                              6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
             self.delta_kT = (np.log(self.ag) - np.log(self.a0)) / (self.Eg - self.E0)
             self.beta = -1 + 0.083 * self.T + (21 - 0.13 * self.T) * self.x
         elif self.fittype == "Schacham and Finkman":
@@ -872,7 +872,7 @@ class cal_MCT_a:
             self.B = self.A / np.power(np.pi, 2) / np.power(self.s, 3)
             self.E0 = -0.295 + 1.87 * self.x - 0.28 * self.x * self.x + \
                       (
-                                  6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
+                              6 - 14 * self.x + 3 * self.x * self.x) * 0.0001 * self.T + 0.35 * self.x * self.x * self.x * self.x
 
             # print(self.E0)
             # Here E0 is the same equation as Eg in Chu's fomula.
@@ -890,7 +890,7 @@ class cal_MCT_a:
             self.ab = self.B / self.E0 * \
                       ((self.W / 2 + self.b) * np.sqrt((self.W / 2 + self.b) * (self.W / 2 + self.b) - self.b * self.b)
                        + 1 / 8 * (self.W / 2 + 2 * self.b) * np.sqrt((self.W / 2 + 2 * self.b) * (
-                                          self.W / 2 + 2 * self.b) - 4 * self.b * self.b)) * np.exp(energy / self.W)
+                                      self.W / 2 + 2 * self.b) - 4 * self.b * self.b)) * np.exp(energy / self.W)
 
         return self.ab
 
@@ -1051,7 +1051,7 @@ class ThreadedTask_fringes(threading.Thread):
             for HgTe_offset in np.arange(self.inital_HgTe - HgTe_fitrange, self.inital_HgTe + HgTe_fitrange, 1):
                 self.progress_var.set((CdTe_offset - self.inital_CdTe + CdTe_fitrange) / CdTe_fitrange / 2 * 100 +
                                       (
-                                                  HgTe_offset - self.inital_HgTe + HgTe_fitrange) / HgTe_fitrange / 2 / CdTe_fitrange / 2 * 100)
+                                              HgTe_offset - self.inital_HgTe + HgTe_fitrange) / HgTe_fitrange / 2 / CdTe_fitrange / 2 * 100)
                 for i in range(0, self.layernumber):
                     if int(self.checklayer_list[i]) == 1:
                         if self.layertype_list[i] == "CdTe":
@@ -1059,9 +1059,9 @@ class ThreadedTask_fringes(threading.Thread):
                             self.entry_d_list[i] = new_d
                         elif self.layertype_list[i] == "MCT" or self.layertype_list[i] == "SL":
                             new_d = float(self.entry_d_list_initial[i]) * float(self.entry_x_list[i]) * (
-                                        1 + 0.01 * CdTe_offset) \
+                                    1 + 0.01 * CdTe_offset) \
                                     + float(self.entry_d_list_initial[i]) * (1 - float(self.entry_x_list[i])) * (
-                                                1 + 0.01 * HgTe_offset)
+                                            1 + 0.01 * HgTe_offset)
                             self.entry_d_list[i] = new_d
 
                 fitobject = FIT_FTIR(self.temp, self.wavenumbers_cut, self.trans_cut, self.subd, self.layertype_list,
@@ -1105,7 +1105,7 @@ class ThreadedTask_fringes(threading.Thread):
 
 
 class FTIR_fittingtool_GUI(Frame):
-    def __init__(self, root, masterroot, listbox, statusbar, status1, status2):
+    def __init__(self, root, masterroot, listbox, statusbar, status1, status2, configtheme):
         super().__init__(root, width=cross_platform_config.config.FRAME_WIDTH, bg="#2b2b2b")
         self.root = root
         self.masterroot = masterroot
@@ -1178,9 +1178,10 @@ class FTIR_fittingtool_GUI(Frame):
 
         self.hld = 0
 
+        os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))
         self.config = configparser.ConfigParser()
         self.config.read('configuration.ini')
-        self.config_theme = self.config["Settings"]["colortheme"]
+        self.config_theme = str(configtheme.get())
 
         self.blindcal = int(self.config["Settings"]["blindcalculation"])
         self.displayreflection = int(self.config["Settings"]["showreflection"])
@@ -2066,7 +2067,7 @@ class FTIR_fittingtool_GUI(Frame):
                     new_d = self.entry_d_list_initial[i - 1] * float(getattr(self, "entry_x_{}".format(i)).get()) \
                             * (1 + 0.01 * float(self.entry_23.get())) \
                             + self.entry_d_list_initial[i - 1] * (
-                                        1 - float(getattr(self, "entry_x_{}".format(i)).get())) \
+                                    1 - float(getattr(self, "entry_x_{}".format(i)).get())) \
                             * (1 + 0.01 * float(self.entry_24.get()))
                     getattr(self, "entry_d_{}".format(i)).delete(0, END)
                     getattr(self, "entry_d_{}".format(i)).insert(0, "{0:.2f}".format(new_d))
@@ -2074,7 +2075,7 @@ class FTIR_fittingtool_GUI(Frame):
     def settings(self):
 
         """Optinal settings for customized result."""
-        
+
         settingwindow = Toplevel()
         if _platform == "darwin":
             w2 = 460  # width for the window
@@ -3294,14 +3295,17 @@ class FTIR_fittingtool_GUI(Frame):
 
 
 def main():
+    root = Tk()
+
     os.chdir(os.path.dirname(os.path.realpath(sys.argv[0])))  # Change the working directory to current directory.
 
     # Load the configuration file
     config = configparser.ConfigParser()
     config.read('configuration.ini')
     config_theme = config["Settings"]["colortheme"]
+    config_theme_var = IntVar()
+    config_theme_var.set(config["Settings"]["colortheme"])
 
-    root = Tk()
     w = cross_platform_config.config.FRAME_WIDTH  # width for the Tk root
     h = cross_platform_config.config.FRAME_HEIGHT  # height for the Tk root
     ws = root.winfo_screenwidth()  # width of the screen
@@ -3393,7 +3397,7 @@ def main():
     listbox.pack(side=LEFT, fill=BOTH, expand=True)
     scrollbar.config(command=listbox.yview)
 
-    FTIR_fittingtool_GUI(root, root, listbox, statusbar, status1, status2)
+    FTIR_fittingtool_GUI(root, root, listbox, statusbar, status1, status2, config_theme_var)
 
     listbox.delete(0, END)
     listbox.insert(END, '*' * 60)
