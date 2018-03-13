@@ -3277,7 +3277,6 @@ class FTIR_fittingtool_GUI(Frame):
     def removeprogressbar(self):
         self.progressbar.pack_forget()
 
-        self.status1 = Label(self.statusbar, text=self.text, fg=self.fg, bg=self.bg, bd=1, relief=RIDGE)
         self.status1.pack(side=LEFT, fill=X, expand=True)
         self.status1.pack_propagate(0)
 
