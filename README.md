@@ -1,4 +1,4 @@
-# FTIR_fittingtool_v2.62
+# FTIR_fittingtool_v2.63
 The second generation of FTIR data fitting tool. 
 
 The program uses the knowledge of thin film filters which studied the physics behind EM waves propagating inside an optical system. 
@@ -33,6 +33,10 @@ Special Thanks: Dr. Yong Chang.
 
 Update log: 
 
+v2.63.
+
+Some minor changes to cooperate with the Toolbox. 
+            
 v2.62.
 
 Optimized window arrangement. 

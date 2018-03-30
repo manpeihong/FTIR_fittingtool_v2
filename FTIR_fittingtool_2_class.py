@@ -22,7 +22,7 @@ import guessnumbers
 import configparser
 from ColorTheme import color_theme
 
-__version__ = '2.62'
+__version__ = '2.63'
 __emailaddress__ = "pman3@uic.edu"
 
 
@@ -1211,11 +1211,11 @@ class FTIR_fittingtool_GUI(Frame):
 
         def mouseon(event, tip):
             if self.programbusy == 0:
-                self.status1.config(text=tip)
+                self.status1.config(text=tip, fg=self.warningcolor3)
 
         def mouseleave(event):
             if self.programbusy == 0:
-                self.status1.config(text=self.text)
+                self.status1.config(text=self.text, fg=self.fg)
 
         def widget_instructions(widget, instruction):
             widget.bind("<Enter>", lambda event, arg=instruction: mouseon(event, arg))
@@ -1834,6 +1834,11 @@ class FTIR_fittingtool_GUI(Frame):
         self.canvas.mpl_connect('key_press_event', on_key_event)
         self.canvas.mpl_connect('button_press_event', self.onpick)
 
+        self.hotkeys()
+
+        self.pack(side=TOP, fill=BOTH, expand=1)
+
+    def hotkeys(self):
         def load_structure_event(event):
             self.load_structure()
 
@@ -1853,21 +1858,19 @@ class FTIR_fittingtool_GUI(Frame):
             self.help()
 
         if _platform == "darwin":
-            masterroot.bind('<Command-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
-            masterroot.bind('<Command-f>', fit_fringes_event)
-            masterroot.bind('<Command-o>', openfromfile_event)
-            masterroot.bind('<Command-s>', show_fringes_event)
-            masterroot.bind('<Command-a>', cal_absorption_event)
-            masterroot.bind('<Command-p>', help_event)
+            self.masterroot.bind('<Command-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
+            self.masterroot.bind('<Command-f>', fit_fringes_event)
+            self.masterroot.bind('<Command-o>', openfromfile_event)
+            self.masterroot.bind('<Command-s>', show_fringes_event)
+            self.masterroot.bind('<Command-a>', cal_absorption_event)
+            self.masterroot.bind('<Command-p>', help_event)
         elif _platform == "win32" or _platform == "win64" or _platform == "linux" or _platform == "linux2":
-            masterroot.bind('<Control-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
-            masterroot.bind('<Control-f>', fit_fringes_event)
-            masterroot.bind('<Control-o>', openfromfile_event)
-            masterroot.bind('<Control-s>', show_fringes_event)
-            masterroot.bind('<Control-a>', cal_absorption_event)
-            masterroot.bind('<Control-p>', help_event)
-
-        self.pack(side=TOP, fill=BOTH, expand=1)
+            self.masterroot.bind('<Control-l>', load_structure_event)  # key must be binded to the tk window(unknown reason)
+            self.masterroot.bind('<Control-f>', fit_fringes_event)
+            self.masterroot.bind('<Control-o>', openfromfile_event)
+            self.masterroot.bind('<Control-s>', show_fringes_event)
+            self.masterroot.bind('<Control-a>', cal_absorption_event)
+            self.masterroot.bind('<Control-p>', help_event)
 
     def help(self):
         if self.needmorehelp == 0:
@@ -1958,6 +1961,8 @@ class FTIR_fittingtool_GUI(Frame):
                 helplines.insert(END, '\n   Ctrl+S: Show Transmissions using the input parameters.')
 
             helplines.insert(END, '\n\nUpdate Log:')
+            helplines.insert(END, '\nv. 2.63:')
+            helplines.insert(END, '\n   Some minor changes to cooperate with the Toolbox. ')
             helplines.insert(END, '\nv. 2.62:')
             helplines.insert(END, '\n   Optimized window arrangement. ')
             helplines.insert(END, '\n   Optimized color handling for embed purpose. ')
